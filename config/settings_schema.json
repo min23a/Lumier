@@ -1,0 +1,292 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Lumière",
+    "theme_version": "1.0.0",
+    "theme_author": "Your Studio Name",
+    "theme_documentation_url": "https://your-docs-url.com",
+    "theme_support_url": "https://your-support-url.com"
+  },
+
+  {
+    "name": "Colors",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Palette"
+      },
+      {
+        "type": "color",
+        "id": "color_background",
+        "label": "Background",
+        "default": "#0d0d0f"
+      },
+      {
+        "type": "color",
+        "id": "color_background_secondary",
+        "label": "Background secondary",
+        "default": "#17171b"
+      },
+      {
+        "type": "color",
+        "id": "color_text",
+        "label": "Body text",
+        "default": "#f0ede8"
+      },
+      {
+        "type": "color",
+        "id": "color_text_subtle",
+        "label": "Subtle text",
+        "default": "#9c9890"
+      },
+      {
+        "type": "color",
+        "id": "color_accent",
+        "label": "Accent / Brand",
+        "default": "#c9a96e"
+      },
+      {
+        "type": "color",
+        "id": "color_accent_hover",
+        "label": "Accent hover",
+        "default": "#b8916a"
+      },
+      {
+        "type": "color",
+        "id": "color_border",
+        "label": "Border",
+        "default": "#2a2a30"
+      },
+      {
+        "type": "header",
+        "content": "Buttons"
+      },
+      {
+        "type": "color",
+        "id": "color_button_primary_bg",
+        "label": "Primary button background",
+        "default": "#c9a96e"
+      },
+      {
+        "type": "color",
+        "id": "color_button_primary_text",
+        "label": "Primary button text",
+        "default": "#0d0d0f"
+      }
+    ]
+  },
+
+  {
+    "name": "Typography",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Headings"
+      },
+      {
+        "type": "font_picker",
+        "id": "heading_font",
+        "label": "Heading font",
+        "default": "cormorant_garamond_n4"
+      },
+      {
+        "type": "range",
+        "id": "heading_scale",
+        "label": "Heading scale",
+        "min": 80,
+        "max": 150,
+        "step": 5,
+        "unit": "%",
+        "default": 100
+      },
+      {
+        "type": "header",
+        "content": "Body"
+      },
+      {
+        "type": "font_picker",
+        "id": "body_font",
+        "label": "Body font",
+        "default": "jost_n4"
+      },
+      {
+        "type": "range",
+        "id": "body_scale",
+        "label": "Body font scale",
+        "min": 85,
+        "max": 130,
+        "step": 5,
+        "unit": "%",
+        "default": 100
+      }
+    ]
+  },
+
+  {
+    "name": "Layout",
+    "settings": [
+      {
+        "type": "select",
+        "id": "text_direction",
+        "label": "Text direction",
+        "default": "ltr",
+        "options": [
+          { "value": "ltr", "label": "Left to right" },
+          { "value": "rtl", "label": "Right to left" }
+        ]
+      },
+      {
+        "type": "checkbox",
+        "id": "enable_animations",
+        "label": "Enable scroll animations",
+        "default": true
+      },
+      {
+        "type": "range",
+        "id": "page_width",
+        "label": "Page width",
+        "min": 1000,
+        "max": 1600,
+        "step": 40,
+        "unit": "px",
+        "default": 1440
+      }
+    ]
+  },
+
+  {
+    "name": "Glassmorphism",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Glass effect settings"
+      },
+      {
+        "type": "range",
+        "id": "glass_blur",
+        "label": "Blur intensity",
+        "min": 4,
+        "max": 40,
+        "step": 2,
+        "unit": "px",
+        "default": 16
+      },
+      {
+        "type": "range",
+        "id": "glass_opacity",
+        "label": "Glass panel opacity",
+        "min": 2,
+        "max": 30,
+        "step": 1,
+        "unit": "%",
+        "default": 8
+      }
+    ]
+  },
+
+  {
+    "name": "Favicon",
+    "settings": [
+      {
+        "type": "image_picker",
+        "id": "favicon",
+        "label": "Favicon image",
+        "info": "Will be scaled to 32x32px"
+      }
+    ]
+  },
+
+  {
+    "name": "Social media",
+    "settings": [
+      {
+        "type": "header",
+        "content": "Social links"
+      },
+      {
+        "type": "text",
+        "id": "social_instagram_link",
+        "label": "Instagram",
+        "default": ""
+      },
+      {
+        "type": "text",
+        "id": "social_tiktok_link",
+        "label": "TikTok",
+        "default": ""
+      },
+      {
+        "type": "text",
+        "id": "social_pinterest_link",
+        "label": "Pinterest",
+        "default": ""
+      },
+      {
+        "type": "text",
+        "id": "social_youtube_link",
+        "label": "YouTube",
+        "default": ""
+      },
+      {
+        "type": "text",
+        "id": "social_facebook_link",
+        "label": "Facebook",
+        "default": ""
+      }
+    ]
+  },
+
+  {
+    "name": "Cart",
+    "settings": [
+      {
+        "type": "select",
+        "id": "cart_type",
+        "label": "Cart type",
+        "default": "drawer",
+        "options": [
+          { "value": "drawer",   "label": "Drawer (slide-in)" },
+          { "value": "page",     "label": "Cart page" },
+          { "value": "dropdown", "label": "Dropdown mini-cart" }
+        ]
+      },
+      {
+        "type": "checkbox",
+        "id": "cart_free_shipping_bar",
+        "label": "Show free shipping progress bar",
+        "default": true
+      },
+      {
+        "type": "number",
+        "id": "cart_free_shipping_threshold",
+        "label": "Free shipping threshold",
+        "default": 75,
+        "info": "In your store's currency. Set 0 to disable."
+      }
+    ]
+  },
+
+  {
+    "name": "Search",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "predictive_search_enabled",
+        "label": "Enable predictive search",
+        "default": true
+      },
+      {
+        "type": "select",
+        "id": "predictive_search_resources",
+        "label": "Show in predictive search",
+        "default": "products,collections",
+        "options": [
+          { "value": "products",             "label": "Products only" },
+          { "value": "products,collections", "label": "Products & Collections" },
+          { "value": "products,articles",    "label": "Products & Articles" },
+          { "value": "products,collections,articles", "label": "All content" }
+        ]
+      }
+    ]
+  }
+]

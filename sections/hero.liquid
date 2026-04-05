@@ -1,0 +1,552 @@
+{%- comment -%}
+  sections/hero.liquid — Lumière Beauty Theme
+  Full-bleed hero section with glassmorphism card, dynamic blocks, and
+  full OS 2.0 "blocks everywhere" architecture.
+
+  Blocks supported:
+    - eyebrow   : Small label above heading
+    - heading   : Main H1/H2
+    - text      : Body paragraph
+    - buttons   : CTA button group
+    - badges    : Trust-signal pills
+    - spacer    : Configurable whitespace
+
+  Shopify section settings:
+    - Background image / video
+    - Min-height
+    - Content alignment
+    - Overlay opacity
+    - Ken-Burns animation toggle
+    - Scroll indicator toggle
+{%- endcomment -%}
+
+{%- comment -%} ── Critical CSS (inlined, prevents render-blocking) ──────── {%- endcomment -%}
+{% style %}
+  #shopify-section-{{ section.id }} .hero {
+    min-height: {{ section.settings.min_height | default: 90 }}vh;
+    --hero-overlay-opacity: {{ section.settings.overlay_opacity | default: 50 | divided_by: 100.0 }};
+  }
+
+  {%- if section.settings.bg_color != blank and section.settings.image == blank -%}
+    #shopify-section-{{ section.id }} .hero {
+      background-color: {{ section.settings.bg_color }};
+    }
+  {%- endif -%}
+
+  {%- if section.settings.padding_top != blank -%}
+    #shopify-section-{{ section.id }} .hero__content {
+      padding-top:    {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  {%- endif -%}
+{% endstyle %}
+
+{%- comment -%} ── Non-critical CSS loaded async ────────────────────────── {%- endcomment -%}
+{{ 'section-hero.css' | asset_url | stylesheet_tag: preload: true, media: 'print', onload: "this.media='all'" }}
+
+{%- liquid
+  assign alignment = section.settings.content_alignment | default: 'left'
+  assign animate_bg = section.settings.animate_bg
+  assign show_scroll_indicator = section.settings.show_scroll_indicator
+  assign has_image = section.settings.image != blank
+  assign has_video = section.settings.video_url != blank
+-%}
+
+<div
+  class="hero{% if animate_bg %} hero--animate-bg{% endif %}"
+  data-section-id="{{ section.id }}"
+  aria-label="{{ 'sections.hero.aria_label' | t }}"
+>
+
+  {%- comment -%} ── Background media ───────────────────────────────── {%- endcomment -%}
+  {%- if has_video or has_image -%}
+    <div class="hero__media" aria-hidden="true">
+
+      {%- if has_video -%}
+        {{-
+          section.settings.video_url
+          | video_tag:
+            autoplay: true,
+            loop: true,
+            muted: true,
+            playsinline: true,
+            class: 'img-cover',
+            poster: section.settings.image | image_url: width: 1920
+        -}}
+      {%- elsif has_image -%}
+        {%- assign img = section.settings.image -%}
+        <img
+          src="{{ img | image_url: width: 1200 }}"
+          srcset="
+            {{ img | image_url: width: 480  }} 480w,
+            {{ img | image_url: width: 768  }} 768w,
+            {{ img | image_url: width: 1200 }} 1200w,
+            {{ img | image_url: width: 1920 }} 1920w
+          "
+          sizes="100vw"
+          alt="{{ img.alt | escape }}"
+          width="{{ img.width }}"
+          height="{{ img.height }}"
+          fetchpriority="high"
+          decoding="async"
+          loading="eager"
+        >
+      {%- endif -%}
+
+    </div>
+
+    {%- comment -%} ── Gradient overlay ────────────────────────────── {%- endcomment -%}
+    <div
+      class="hero__overlay"
+      style="opacity: {{ section.settings.overlay_opacity | default: 50 | divided_by: 100.0 }};"
+      aria-hidden="true"
+    ></div>
+  {%- endif -%}
+
+  {%- comment -%} ── Main content ────────────────────────────────────── {%- endcomment -%}
+  <div class="hero__content hero__content--{{ alignment }}">
+    <div class="hero__card">
+
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+
+          {%- when 'eyebrow' -%}
+            {%- if block.settings.text != blank -%}
+              <p
+                class="hero__eyebrow"
+                {{ block.shopify_attributes }}
+              >
+                {{- block.settings.text | escape -}}
+              </p>
+            {%- endif -%}
+
+          {%- when 'heading' -%}
+            {%- if block.settings.heading != blank -%}
+              <{{ block.settings.heading_tag | default: 'h1' }}
+                class="hero__heading"
+                style="font-size: clamp({{ block.settings.font_size_mobile }}rem, {{ block.settings.font_size_fluid }}vw, {{ block.settings.font_size_desktop }}rem);"
+                {{ block.shopify_attributes }}
+              >
+                {{- block.settings.heading -}}
+              </{{ block.settings.heading_tag | default: 'h1' }}>
+            {%- endif -%}
+
+          {%- when 'text' -%}
+            {%- if block.settings.text != blank -%}
+              <div
+                class="hero__body"
+                {{ block.shopify_attributes }}
+              >
+                {{- block.settings.text -}}
+              </div>
+            {%- endif -%}
+
+          {%- when 'buttons' -%}
+            <div
+              class="hero__cta-group"
+              {{ block.shopify_attributes }}
+            >
+              {%- if block.settings.button_1_label != blank -%}
+                <a
+                  href="{{ block.settings.button_1_url | default: '#' }}"
+                  class="btn btn--primary{% if block.settings.button_1_size == 'large' %} btn--lg{% endif %}"
+                  {% if block.settings.button_1_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
+                >
+                  {{- block.settings.button_1_label | escape -}}
+                </a>
+              {%- endif -%}
+
+              {%- if block.settings.button_2_label != blank -%}
+                <a
+                  href="{{ block.settings.button_2_url | default: '#' }}"
+                  class="btn btn--glass{% if block.settings.button_2_size == 'large' %} btn--lg{% endif %}"
+                  {% if block.settings.button_2_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
+                >
+                  {{- block.settings.button_2_label | escape -}}
+                </a>
+              {%- endif -%}
+            </div>
+
+          {%- when 'badges' -%}
+            <div
+              class="hero__badges"
+              {{ block.shopify_attributes }}
+            >
+              {%- for i in (1..4) -%}
+                {%- assign badge_key = 'badge_' | append: i -%}
+                {%- if block.settings[badge_key] != blank -%}
+                  <span class="hero__badge">
+                    {%- comment -%} Checkmark icon {%- endcomment -%}
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+                      <path d="M3 8l3.5 3.5L13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    {{- block.settings[badge_key] | escape -}}
+                  </span>
+                {%- endif -%}
+              {%- endfor -%}
+            </div>
+
+          {%- when 'spacer' -%}
+            <div
+              class="hero__spacer"
+              style="height: {{ block.settings.height | default: 16 }}px;"
+              aria-hidden="true"
+              {{ block.shopify_attributes }}
+            ></div>
+
+        {%- endcase -%}
+      {%- endfor -%}
+
+    </div>{%- comment -%} .hero__card {%- endcomment -%}
+  </div>{%- comment -%} .hero__content {%- endcomment -%}
+
+  {%- if show_scroll_indicator -%}
+    <div class="hero__scroll-indicator" aria-hidden="true">
+      <span>{{ 'sections.hero.scroll' | t }}</span>
+      <div class="hero__scroll-arrow"></div>
+    </div>
+  {%- endif -%}
+
+</div>{%- comment -%} .hero {%- endcomment -%}
+
+{% schema %}
+{
+  "name": "Hero",
+  "tag": "section",
+  "class": "section-hero",
+  "limit": 1,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Media"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Background image"
+    },
+    {
+      "type": "video_url",
+      "id": "video_url",
+      "label": "Background video URL",
+      "accept": ["youtube", "vimeo"],
+      "info": "Overrides image when set"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Fallback background color",
+      "default": "#0d0d0f",
+      "info": "Used when no image or video is set"
+    },
+    {
+      "type": "checkbox",
+      "id": "animate_bg",
+      "label": "Ken-Burns zoom animation",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Overlay"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Overlay darkness",
+      "min": 0,
+      "max": 90,
+      "step": 5,
+      "unit": "%",
+      "default": 50
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "label": "Content alignment",
+      "default": "left",
+      "options": [
+        { "value": "left",   "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right",  "label": "Right" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "min_height",
+      "label": "Minimum height",
+      "min": 40,
+      "max": 100,
+      "step": 5,
+      "unit": "vh",
+      "default": 90
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "unit": "px",
+      "default": 120
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "unit": "px",
+      "default": 120
+    },
+    {
+      "type": "checkbox",
+      "id": "show_scroll_indicator",
+      "label": "Show scroll indicator",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "eyebrow",
+      "name": "Eyebrow label",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Eyebrow text",
+          "default": "New Collection"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "name": "Heading",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "heading",
+          "label": "Heading",
+          "default": "<p>Beauty that <em>Radiates</em></p>"
+        },
+        {
+          "type": "select",
+          "id": "heading_tag",
+          "label": "Heading tag",
+          "default": "h1",
+          "options": [
+            { "value": "h1", "label": "H1 (main page heading)" },
+            { "value": "h2", "label": "H2" },
+            { "value": "h3", "label": "H3" }
+          ]
+        },
+        {
+          "type": "range",
+          "id": "font_size_mobile",
+          "label": "Font size (mobile)",
+          "min": 1.5,
+          "max": 3.5,
+          "step": 0.1,
+          "unit": "rem",
+          "default": 2.5
+        },
+        {
+          "type": "range",
+          "id": "font_size_desktop",
+          "label": "Font size (desktop)",
+          "min": 2.5,
+          "max": 7,
+          "step": 0.25,
+          "unit": "rem",
+          "default": 4.5
+        },
+        {
+          "type": "range",
+          "id": "font_size_fluid",
+          "label": "Fluid scale (vw)",
+          "min": 2,
+          "max": 8,
+          "step": 0.5,
+          "default": 5
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "Body text",
+      "limit": 2,
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "Text",
+          "default": "<p>Discover our curated range of luxurious beauty essentials, crafted to reveal your most radiant self.</p>"
+        }
+      ]
+    },
+    {
+      "type": "buttons",
+      "name": "Buttons",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "header",
+          "content": "Primary button"
+        },
+        {
+          "type": "text",
+          "id": "button_1_label",
+          "label": "Label",
+          "default": "Shop Now"
+        },
+        {
+          "type": "url",
+          "id": "button_1_url",
+          "label": "Link"
+        },
+        {
+          "type": "select",
+          "id": "button_1_size",
+          "label": "Size",
+          "default": "default",
+          "options": [
+            { "value": "default", "label": "Default" },
+            { "value": "large",   "label": "Large" }
+          ]
+        },
+        {
+          "type": "checkbox",
+          "id": "button_1_new_tab",
+          "label": "Open in new tab",
+          "default": false
+        },
+        {
+          "type": "header",
+          "content": "Secondary button"
+        },
+        {
+          "type": "text",
+          "id": "button_2_label",
+          "label": "Label",
+          "default": "View Lookbook"
+        },
+        {
+          "type": "url",
+          "id": "button_2_url",
+          "label": "Link"
+        },
+        {
+          "type": "select",
+          "id": "button_2_size",
+          "label": "Size",
+          "default": "default",
+          "options": [
+            { "value": "default", "label": "Default" },
+            { "value": "large",   "label": "Large" }
+          ]
+        },
+        {
+          "type": "checkbox",
+          "id": "button_2_new_tab",
+          "label": "Open in new tab",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "badges",
+      "name": "Trust badges",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "badge_1",
+          "label": "Badge 1",
+          "default": "Cruelty-Free"
+        },
+        {
+          "type": "text",
+          "id": "badge_2",
+          "label": "Badge 2",
+          "default": "Vegan"
+        },
+        {
+          "type": "text",
+          "id": "badge_3",
+          "label": "Badge 3",
+          "default": "Clean Beauty"
+        },
+        {
+          "type": "text",
+          "id": "badge_4",
+          "label": "Badge 4",
+          "default": "Dermatologist Tested"
+        }
+      ]
+    },
+    {
+      "type": "spacer",
+      "name": "Spacer",
+      "settings": [
+        {
+          "type": "range",
+          "id": "height",
+          "label": "Height",
+          "min": 4,
+          "max": 80,
+          "step": 4,
+          "unit": "px",
+          "default": 16
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hero — Full Bleed",
+      "blocks": [
+        { "type": "eyebrow",  "settings": { "text": "New Collection" } },
+        {
+          "type": "heading",
+          "settings": {
+            "heading": "<p>Beauty that <em>Radiates</em></p>",
+            "heading_tag": "h1",
+            "font_size_mobile": 2.5,
+            "font_size_desktop": 4.5,
+            "font_size_fluid": 5
+          }
+        },
+        {
+          "type": "text",
+          "settings": {
+            "text": "<p>Discover our curated range of luxurious beauty essentials, crafted to reveal your most radiant self.</p>"
+          }
+        },
+        {
+          "type": "buttons",
+          "settings": {
+            "button_1_label": "Shop Now",
+            "button_2_label": "View Lookbook"
+          }
+        },
+        {
+          "type": "badges",
+          "settings": {
+            "badge_1": "Cruelty-Free",
+            "badge_2": "Vegan",
+            "badge_3": "Clean Beauty",
+            "badge_4": "Dermatologist Tested"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

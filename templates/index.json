@@ -1,0 +1,60 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "eyebrow": {
+          "type": "eyebrow",
+          "settings": {
+            "text": "New Collection"
+          }
+        },
+        "heading": {
+          "type": "heading",
+          "settings": {
+            "heading": "<p>Beauty that <em>Radiates</em></p>",
+            "heading_tag": "h1",
+            "font_size_mobile": 2.5,
+            "font_size_desktop": 4.5,
+            "font_size_fluid": 5
+          }
+        },
+        "text": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Discover our curated range of luxurious beauty essentials, crafted to reveal your most radiant self.</p>"
+          }
+        },
+        "buttons": {
+          "type": "buttons",
+          "settings": {
+            "button_1_label": "Shop Now",
+            "button_1_url": "/collections/all",
+            "button_2_label": "View Lookbook",
+            "button_2_url": "/pages/lookbook"
+          }
+        },
+        "badges": {
+          "type": "badges",
+          "settings": {
+            "badge_1": "Cruelty-Free",
+            "badge_2": "Vegan",
+            "badge_3": "Clean Beauty",
+            "badge_4": "Dermatologist Tested"
+          }
+        }
+      },
+      "block_order": ["eyebrow", "heading", "text", "buttons", "badges"],
+      "settings": {
+        "min_height": 90,
+        "content_alignment": "left",
+        "overlay_opacity": 50,
+        "animate_bg": true,
+        "show_scroll_indicator": true,
+        "padding_top": 120,
+        "padding_bottom": 120
+      }
+    }
+  },
+  "order": ["hero"]
+}

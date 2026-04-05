@@ -1,0 +1,225 @@
+<!doctype html>
+<html
+  class="no-js"
+  lang="{{ request.locale.iso_code }}"
+  dir="{{ settings.text_direction | default: 'ltr' }}"
+>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, height=device-height, minimum-scale=1.0">
+    <meta name="theme-color" content="{{ settings.color_background }}">
+
+    {%- if settings.favicon != blank -%}
+      <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+    {%- endif -%}
+
+    <title>
+      {{ page_title }}
+      {%- if current_tags %} &ndash; {{ 'general.meta.tags' | t: tags: current_tags | join: ', ' }}{% endif -%}
+      {%- if current_page != 1 %} &ndash; {{ 'general.meta.page' | t: page: current_page }}{% endif -%}
+      {%- unless page_title == shop.name %} &ndash; {{ shop.name }}{% endunless -%}
+    </title>
+
+    {% if page_description %}
+      <meta name="description" content="{{ page_description | escape }}">
+    {% endif %}
+
+    {% render 'meta-tags' %}
+
+    <link rel="canonical" href="{{ canonical_url }}">
+    <link rel="preconnect" href="https://cdn.shopify.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.shopifycdn.com" crossorigin>
+
+    {%- unless settings.heading_font.system? -%}
+      <link rel="preload" as="font" href="{{ settings.heading_font | font_url }}" type="font/woff2" crossorigin>
+    {%- endunless -%}
+    {%- unless settings.body_font.system? -%}
+      <link rel="preload" as="font" href="{{ settings.body_font | font_url }}" type="font/woff2" crossorigin>
+    {%- endunless -%}
+
+    {%- comment -%} ============================================================
+      CRITICAL CSS — inlined to prevent render-blocking
+    ================================================================ {%- endcomment -%}
+    <style>
+      /* ── Design Tokens ─────────────────────────────────────── */
+      :root {
+        /* Palette */
+        --color-bg:               {{ settings.color_background }};
+        --color-bg-secondary:     {{ settings.color_background_secondary }};
+        --color-text:             {{ settings.color_text }};
+        --color-text-subtle:      {{ settings.color_text_subtle }};
+        --color-accent:           {{ settings.color_accent }};
+        --color-accent-hover:     {{ settings.color_accent_hover }};
+        --color-border:           {{ settings.color_border }};
+
+        /* Glassmorphism */
+        --glass-bg:               rgba(255,255,255,0.08);
+        --glass-bg-hover:         rgba(255,255,255,0.14);
+        --glass-border:           rgba(255,255,255,0.18);
+        --glass-blur:             16px;
+        --glass-blur-heavy:       32px;
+        --glass-shadow:           0 8px 32px rgba(0,0,0,0.18);
+
+        /* Typography */
+        --font-heading:           {{ settings.heading_font.family }}, {{ settings.heading_font.fallback_families }};
+        --font-body:              {{ settings.body_font.family }}, {{ settings.body_font.fallback_families }};
+        --font-body-weight:       {{ settings.body_font.weight }};
+        --font-body-style:        {{ settings.body_font.style }};
+        --font-heading-weight:    {{ settings.heading_font.weight }};
+        --font-heading-style:     {{ settings.heading_font.style }};
+
+        /* Scale */
+        --spacing-xs:    0.25rem;
+        --spacing-sm:    0.5rem;
+        --spacing-md:    1rem;
+        --spacing-lg:    1.5rem;
+        --spacing-xl:    2.5rem;
+        --spacing-2xl:   4rem;
+        --spacing-3xl:   6rem;
+
+        /* Radii */
+        --radius-sm:     6px;
+        --radius-md:     12px;
+        --radius-lg:     20px;
+        --radius-xl:     32px;
+        --radius-full:   9999px;
+
+        /* Transitions */
+        --transition-fast:   150ms cubic-bezier(0.4,0,0.2,1);
+        --transition-base:   280ms cubic-bezier(0.4,0,0.2,1);
+        --transition-slow:   500ms cubic-bezier(0.4,0,0.2,1);
+
+        /* Z-index scale */
+        --z-base:    1;
+        --z-raised:  10;
+        --z-overlay: 100;
+        --z-modal:   200;
+        --z-toast:   300;
+        --z-header:  400;
+
+        /* Container */
+        --container-max:   1440px;
+        --container-gutter: clamp(1rem, 4vw, 2.5rem);
+
+        /* Header height (used for scroll offset) */
+        --header-height: 72px;
+      }
+
+      /* ── Reset / Base ───────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      html {
+        font-size: 16px;
+        scroll-behavior: smooth;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+
+      body {
+        font-family:      var(--font-body);
+        font-weight:      var(--font-body-weight);
+        font-style:       var(--font-body-style);
+        color:            var(--color-text);
+        background-color: var(--color-bg);
+        line-height:      1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+      }
+
+      /* Prevent CLS from font swap */
+      @font-face {
+        font-family: {{ settings.body_font.family | json }};
+        font-weight: {{ settings.body_font.weight }};
+        font-style:  {{ settings.body_font.style }};
+        font-display: swap;
+        src: {{ settings.body_font | font_face | split: 'src:' | last | split: ';' | first }};
+      }
+      @font-face {
+        font-family: {{ settings.heading_font.family | json }};
+        font-weight: {{ settings.heading_font.weight }};
+        font-style:  {{ settings.heading_font.style }};
+        font-display: swap;
+        src: {{ settings.heading_font | font_face | split: 'src:' | last | split: ';' | first }};
+      }
+
+      /* ── Utility: Skip to content ───────────────────────────── */
+      .skip-to-content {
+        position: absolute;
+        top: -100%;
+        left: 1rem;
+        z-index: var(--z-toast);
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: var(--color-accent);
+        color: #fff;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        transition: top var(--transition-fast);
+      }
+      .skip-to-content:focus { top: 1rem; }
+
+      /* ── Prevent layout shift while JS initialises ──────────── */
+      .js body { visibility: visible; }
+    </style>
+
+    {%- comment -%} ── Non-critical CSS loaded async ──────────── {%- endcomment -%}
+    {{
+      'base.css'
+      | asset_url
+      | stylesheet_tag:
+        preload: true,
+        media: 'print',
+        onload: "this.media='all'"
+    }}
+
+    {{ content_for_header }}
+
+    {%- comment -%} ── Shopify Predictive Search & Cart API ─────── {%- endcomment -%}
+    <script>
+      document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
+      window.routes = {
+        root:             "{{ routes.root_url }}",
+        cartUrl:          "{{ routes.cart_url }}",
+        cartAddUrl:       "{{ routes.cart_add_url }}",
+        cartChangeUrl:    "{{ routes.cart_change_url }}",
+        cartUpdateUrl:    "{{ routes.cart_update_url }}",
+        predictiveSearch: "{{ routes.predictive_search_url }}"
+      };
+      window.cartStrings = {
+        error:      {{ 'sections.cart.cart_error' | t | json }},
+        quantityError: {{ 'sections.cart.cart_quantity_error_html' | t: quantity: 99 | json }}
+      };
+      window.moneyFormat = {{ shop.money_format | json }};
+    </script>
+  </head>
+
+  <body
+    class="template-{{ template.name | handle }}{% if template.suffix %} template-{{ template.suffix | handle }}{% endif %}"
+    data-section-id="body"
+  >
+    <a class="skip-to-content" href="#MainContent">
+      {{- 'accessibility.skip_to_content' | t -}}
+    </a>
+
+    {%- sections 'header-group' -%}
+
+    <main id="MainContent" class="main-content" role="main" tabindex="-1">
+      {{ content_for_layout }}
+    </main>
+
+    {%- sections 'footer-group' -%}
+
+    {%- comment -%} ── Overlay / Backdrop shared element ─────────── {%- endcomment -%}
+    <div id="Backdrop" class="backdrop" aria-hidden="true"></div>
+
+    {%- comment -%} ── Cart Drawer (rendered by snippet) ─────────── {%- endcomment -%}
+    {%- render 'cart-drawer' -%}
+
+    {%- comment -%} ── Global JS — deferred, non-blocking ─────────── {%- endcomment -%}
+    <script src="{{ 'global.js' | asset_url }}" defer></script>
+    <script src="{{ 'cart.js' | asset_url }}" defer></script>
+
+    {{ content_for_footer }}
+  </body>
+</html>

@@ -1,0 +1,132 @@
+{
+  "general": {
+    "meta": {
+      "tags": "Tagged with {{ tags }}",
+      "page": "Page {{ page }}"
+    },
+    "password": {
+      "login_form_heading": "Enter store password",
+      "login_form_password_label": "Password",
+      "login_form_password_placeholder": "Your password",
+      "login_form_submit": "Enter",
+      "powered_by_shopify_html": "This shop is powered by {{ shopify }}"
+    }
+  },
+  "accessibility": {
+    "skip_to_content": "Skip to content",
+    "close": "Close",
+    "open_menu": "Open menu",
+    "close_menu": "Close menu",
+    "loading": "Loading…",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "sections": {
+    "hero": {
+      "aria_label": "Hero banner",
+      "scroll": "Scroll"
+    },
+    "header": {
+      "cart": "Cart",
+      "search": "Search",
+      "account": "Account",
+      "wishlist": "Wishlist"
+    },
+    "footer": {
+      "newsletter_heading": "Stay in the loop",
+      "newsletter_placeholder": "Your email address",
+      "newsletter_submit": "Subscribe",
+      "copyright": "© {{ year }} {{ shop_name }}. All rights reserved."
+    },
+    "cart": {
+      "title": "Your Cart",
+      "empty": "Your cart is empty",
+      "continue_shopping": "Continue Shopping",
+      "subtotal": "Subtotal",
+      "checkout": "Checkout",
+      "cart_error": "There was an error adding this item to your cart.",
+      "cart_quantity_error_html": "You can only add {{ quantity }} of this item to your cart.",
+      "free_shipping_threshold_html": "Spend <strong>{{ amount }}</strong> more for free shipping",
+      "free_shipping_achieved": "You qualify for free shipping!"
+    },
+    "product": {
+      "add_to_cart": "Add to Cart",
+      "sold_out": "Sold Out",
+      "unavailable": "Unavailable",
+      "sale_badge": "Sale",
+      "new_badge": "New",
+      "quantity": "Quantity",
+      "sku": "SKU",
+      "vendor": "Brand",
+      "description": "Description",
+      "reviews": "Reviews",
+      "share": "Share",
+      "zoom": "Click to zoom"
+    },
+    "collection": {
+      "filter_and_sort": "Filter & Sort",
+      "filters": "Filters",
+      "sort_by": "Sort by",
+      "no_products": "No products found",
+      "clear_filters": "Clear all",
+      "product_count_one": "{{ count }} product",
+      "product_count_other": "{{ count }} products"
+    },
+    "search": {
+      "placeholder": "Search our store…",
+      "title": "Search",
+      "results_with_count": {
+        "one": "{{ count }} result for \"{{ terms }}\"",
+        "other": "{{ count }} results for \"{{ terms }}\""
+      },
+      "no_results": "No results for \"{{ terms }}\"",
+      "see_all": "See all results"
+    },
+    "newsletter": {
+      "success": "Thank you for subscribing!",
+      "error": "Something went wrong. Please try again."
+    },
+    "predictive_search": {
+      "products": "Products",
+      "collections": "Collections",
+      "articles": "Articles",
+      "no_results": "No results found"
+    }
+  },
+  "products": {
+    "product": {
+      "on_sale": "Sale",
+      "from_price_html": "From {{ price }}"
+    }
+  },
+  "customer": {
+    "login": {
+      "title": "Login",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign In",
+      "forgot_password": "Forgot your password?",
+      "create_account": "Create account"
+    },
+    "register": {
+      "title": "Create Account",
+      "first_name": "First name",
+      "last_name": "Last name",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Create Account",
+      "login": "Already have an account? Log in"
+    },
+    "account": {
+      "title": "My Account",
+      "logout": "Log out",
+      "orders": "Order History",
+      "details": "Account Details"
+    }
+  },
+  "paginate": {
+    "previous": "Previous",
+    "next": "Next",
+    "current_page": "Page {{ current }} of {{ total }}"
+  }
+}
