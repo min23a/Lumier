@@ -1,0 +1,459 @@
+{%- comment -%}
+  sections/footer.liquid — Lumière Beauty Theme
+  Multi-column glassmorphic footer with full OS 2.0 block architecture.
+
+  Blocks:
+    brand          — Logo, tagline, social icons
+    nav_column     — Link-list column with heading
+    newsletter     — Email signup with Klaviyo/Shopify form
+    trust_badges   — Icon + label trust signal row
+    payment_icons  — Payment method icons (SVG sprite)
+    text           — Free-form richtext block
+    spacer         — Configurable whitespace
+
+  Section settings:
+    Background colour, footer group assignment, locale selector toggle,
+    legal links, copyright text.
+{%- endcomment -%}
+
+{%- comment -%} ── Critical structural CSS ───────────────────────────── {%- endcomment -%}
+{% style %}
+  #shopify-section-{{ section.id }} .site-footer {
+    --footer-bg: {{ section.settings.background_color | default: 'var(--color-bg)' }};
+    background: var(--footer-bg);
+  }
+{% endstyle %}
+
+{%- comment -%} ── Non-critical CSS (async) ──────────────────────────── {%- endcomment -%}
+{{
+  'section-footer.css'
+  | asset_url
+  | stylesheet_tag: preload: true, media: 'print', onload: "this.media='all'"
+}}
+
+{%- liquid
+  assign social_links = false
+  if settings.social_instagram_link != blank
+    or settings.social_tiktok_link != blank
+    or settings.social_pinterest_link != blank
+    or settings.social_youtube_link != blank
+    or settings.social_facebook_link != blank
+    assign social_links = true
+  endif
+-%}
+
+<footer class="site-footer" role="contentinfo" data-section-id="{{ section.id }}">
+
+  {%- comment -%} ── Main body (blocks render here) ────────────────── {%- endcomment -%}
+  <div class="footer__body">
+
+    {%- for block in section.blocks -%}
+      {%- case block.type -%}
+
+        {%- comment -%} ── Brand / Logo block ──────────────────────── {%- endcomment -%}
+        {%- when 'brand' -%}
+          <div class="footer__brand animate-on-scroll" {{ block.shopify_attributes }}>
+
+            {%- comment -%} Logo {%- endcomment -%}
+            <a href="{{ routes.root_url }}" class="footer__logo" aria-label="{{ shop.name }}">
+              {%- if section.settings.logo != blank -%}
+                <img
+                  src="{{ section.settings.logo | image_url: height: 76 }}"
+                  srcset="
+                    {{ section.settings.logo | image_url: height: 56 }} 1x,
+                    {{ section.settings.logo | image_url: height: 76 }} 2x
+                  "
+                  alt="{{ section.settings.logo.alt | default: shop.name | escape }}"
+                  class="footer__logo-img"
+                  height="38"
+                  loading="lazy"
+                  decoding="async"
+                >
+              {%- else -%}
+                <span class="footer__logo-text">{{ shop.name }}</span>
+              {%- endif -%}
+            </a>
+
+            {%- if block.settings.tagline != blank -%}
+              <p class="footer__tagline">{{ block.settings.tagline | escape }}</p>
+            {%- endif -%}
+
+            {%- if social_links -%}
+              <div class="footer__social" aria-label="{{ 'footer.social_media' | t | default: 'Follow us' }}">
+                {%- if settings.social_instagram_link != blank -%}
+                  <a href="{{ settings.social_instagram_link }}" class="footer__social-link" rel="noopener noreferrer" target="_blank" aria-label="Instagram">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                  </a>
+                {%- endif -%}
+                {%- if settings.social_tiktok_link != blank -%}
+                  <a href="{{ settings.social_tiktok_link }}" class="footer__social-link footer__social-link--tiktok" rel="noopener noreferrer" target="_blank" aria-label="TikTok">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V9.13a8.16 8.16 0 004.77 1.52V7.22a4.85 4.85 0 01-1-.53z"/></svg>
+                  </a>
+                {%- endif -%}
+                {%- if settings.social_pinterest_link != blank -%}
+                  <a href="{{ settings.social_pinterest_link }}" class="footer__social-link footer__social-link--pinterest" rel="noopener noreferrer" target="_blank" aria-label="Pinterest">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.24 2.65 7.86 6.39 9.29-.09-.78-.17-1.98.03-2.83.19-.77 1.26-5.33 1.26-5.33s-.32-.64-.32-1.59c0-1.49.87-2.61 1.94-2.61.92 0 1.36.69 1.36 1.52 0 .92-.59 2.31-.89 3.59-.25 1.07.53 1.94 1.58 1.94 1.9 0 3.17-2.44 3.17-5.33 0-2.2-1.49-3.74-3.62-3.74-2.47 0-3.92 1.85-3.92 3.77 0 .75.29 1.55.65 1.98.07.09.08.17.06.26-.07.27-.22.87-.25 1-.04.16-.13.2-.3.12-1.13-.52-1.83-2.18-1.83-3.5 0-2.85 2.07-5.47 5.97-5.47 3.14 0 5.58 2.23 5.58 5.22 0 3.11-1.96 5.61-4.68 5.61-.91 0-1.77-.47-2.07-1.03l-.56 2.1c-.2.78-.75 1.76-1.12 2.36.85.26 1.75.4 2.68.4 5.52 0 10-4.48 10-10S17.52 2 12 2z"/></svg>
+                  </a>
+                {%- endif -%}
+                {%- if settings.social_youtube_link != blank -%}
+                  <a href="{{ settings.social_youtube_link }}" class="footer__social-link footer__social-link--youtube" rel="noopener noreferrer" target="_blank" aria-label="YouTube">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.96A29 29 0 0023 12a29 29 0 00-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="currentColor" stroke="none"/></svg>
+                  </a>
+                {%- endif -%}
+                {%- if settings.social_facebook_link != blank -%}
+                  <a href="{{ settings.social_facebook_link }}" class="footer__social-link" rel="noopener noreferrer" target="_blank" aria-label="Facebook">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
+                  </a>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+          </div>
+
+        {%- comment -%} ── Navigation column block ─────────────────── {%- endcomment -%}
+        {%- when 'nav_column' -%}
+          {%- assign col_menu = linklists[block.settings.menu] -%}
+          <div class="footer__nav-column animate-on-scroll" {{ block.shopify_attributes }}>
+            {%- if block.settings.heading != blank -%}
+              <h3 class="footer__nav-heading">{{ block.settings.heading | escape }}</h3>
+            {%- endif -%}
+            {%- if col_menu.links.size > 0 -%}
+              <ul class="footer__nav-list" role="list">
+                {%- for link in col_menu.links -%}
+                  <li>
+                    <a
+                      href="{{ link.url }}"
+                      class="footer__nav-link{% if link.active %} footer__nav-link--active{% endif %}"
+                    >
+                      {{- link.title | escape -}}
+                    </a>
+                  </li>
+                {%- endfor -%}
+              </ul>
+            {%- endif -%}
+          </div>
+
+        {%- comment -%} ── Newsletter block ────────────────────────── {%- endcomment -%}
+        {%- when 'newsletter' -%}
+          <div class="footer__newsletter animate-on-scroll" {{ block.shopify_attributes }}>
+            {%- if block.settings.heading != blank -%}
+              <h3 class="footer__newsletter-heading">
+                {{- block.settings.heading -}}
+              </h3>
+            {%- endif -%}
+            {%- if block.settings.subtext != blank -%}
+              <p class="footer__newsletter-subtext">{{ block.settings.subtext | escape }}</p>
+            {%- endif -%}
+
+            {% form 'customer', id: 'FooterNewsletterForm', class: 'footer__newsletter-form' %}
+              <input type="hidden" name="contact[tags]" value="newsletter">
+              <label for="FooterEmail-{{ block.id }}" class="visually-hidden">
+                {{- 'sections.footer.newsletter_placeholder' | t -}}
+              </label>
+              <input
+                type="email"
+                name="contact[email]"
+                id="FooterEmail-{{ block.id }}"
+                class="footer__newsletter-input"
+                placeholder="{{ 'sections.footer.newsletter_placeholder' | t }}"
+                required
+                autocomplete="email"
+                aria-required="true"
+              >
+              <button
+                type="submit"
+                class="footer__newsletter-btn"
+                aria-label="{{ 'sections.footer.newsletter_submit' | t }}"
+              >
+                {{- 'sections.footer.newsletter_submit' | t -}}
+              </button>
+            {% endform %}
+
+            <p
+              class="footer__newsletter-message{% if form.posted_successfully? %} is-success{% endif %}"
+              role="status"
+              aria-live="polite"
+            >
+              {%- if form.posted_successfully? -%}
+                {{- 'sections.newsletter.success' | t -}}
+              {%- elsif form.errors -%}
+                {{- 'sections.newsletter.error' | t -}}
+              {%- endif -%}
+            </p>
+
+            {%- if block.settings.show_legal -%}
+              <p class="footer__newsletter-legal">
+                {{ 'sections.footer.newsletter_legal_html' | t | default: 'By subscribing, you agree to our <a href="/policies/privacy-policy">Privacy Policy</a>. Unsubscribe anytime.' }}
+              </p>
+            {%- endif -%}
+          </div>
+
+        {%- comment -%} ── Trust badges block ──────────────────────── {%- endcomment -%}
+        {%- when 'trust_badges' -%}
+          <div class="footer__trust" style="grid-column:1/-1;" {{ block.shopify_attributes }}>
+            {%- for i in (1..6) -%}
+              {%- assign label_key = 'badge_' | append: i | append: '_label' -%}
+              {%- if block.settings[label_key] != blank -%}
+                <div class="footer__trust-item">
+                  <span class="footer__trust-icon" aria-hidden="true">
+                    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M8 1l1.88 3.8 4.2.61-3.04 2.96.72 4.18L8 10.5l-3.76 1.98.72-4.18L1.92 5.41l4.2-.61z"/>
+                    </svg>
+                  </span>
+                  <span>{{ block.settings[label_key] | escape }}</span>
+                </div>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+
+        {%- comment -%} ── Payment icons block ─────────────────────── {%- endcomment -%}
+        {%- when 'payment_icons' -%}
+          {%- if block.settings.show_payment_icons -%}
+            <div class="footer__payment" style="grid-column:1/-1;" aria-label="{{ 'footer.payment_methods' | t | default: 'Payment methods' }}" {{ block.shopify_attributes }}>
+              {%- for type in shop.enabled_payment_types -%}
+                {{ type | payment_type_svg_tag: class: 'footer__payment-icon' }}
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
+
+        {%- comment -%} ── Free text block ─────────────────────────── {%- endcomment -%}
+        {%- when 'text' -%}
+          <div class="footer__text-block animate-on-scroll" {{ block.shopify_attributes }}
+            style="font-size:0.875rem;color:var(--color-text-subtle);line-height:1.65;">
+            {{- block.settings.content -}}
+          </div>
+
+        {%- comment -%} ── Spacer block ────────────────────────────── {%- endcomment -%}
+        {%- when 'spacer' -%}
+          <div
+            aria-hidden="true"
+            style="height:{{ block.settings.height | default: 24 }}px;"
+            {{ block.shopify_attributes }}
+          ></div>
+
+      {%- endcase -%}
+    {%- endfor -%}
+
+  </div>{%- comment -%} .footer__body {%- endcomment -%}
+
+  {%- comment -%} ── Legal bar ────────────────────────────────────── {%- endcomment -%}
+  <div class="footer__legal">
+    <p class="footer__copyright">
+      {{
+        'sections.footer.copyright'
+        | t: year: 'now' | date: '%Y', shop_name: shop.name
+        | default: '© 2024 ' | append: shop.name | append: '. All rights reserved.'
+      }}
+    </p>
+
+    {%- comment -%} Policy links ────────────────────────────────── {%- endcomment -%}
+    <nav class="footer__legal-links" aria-label="{{ 'footer.policy_navigation' | t | default: 'Policy links' }}">
+      {%- if shop.privacy_policy != blank -%}
+        <a href="{{ shop.privacy_policy.url }}" class="footer__legal-link">
+          {{- shop.privacy_policy.title | escape -}}
+        </a>
+      {%- endif -%}
+      {%- if shop.refund_policy != blank -%}
+        <a href="{{ shop.refund_policy.url }}" class="footer__legal-link">
+          {{- shop.refund_policy.title | escape -}}
+        </a>
+      {%- endif -%}
+      {%- if shop.terms_of_service != blank -%}
+        <a href="{{ shop.terms_of_service.url }}" class="footer__legal-link">
+          {{- shop.terms_of_service.title | escape -}}
+        </a>
+      {%- endif -%}
+      {%- if shop.shipping_policy != blank -%}
+        <a href="{{ shop.shipping_policy.url }}" class="footer__legal-link">
+          {{- shop.shipping_policy.title | escape -}}
+        </a>
+      {%- endif -%}
+    </nav>
+
+    {%- comment -%} Locale selectors ────────────────────────────── {%- endcomment -%}
+    {%- if section.settings.show_locale_selector and localization.available_languages.size > 1 -%}
+      <div class="footer__locale">
+        {% form 'localization', id: 'FooterLocaleForm' %}
+          <label for="FooterLanguage" class="visually-hidden">{{ 'footer.language' | t | default: 'Language' }}</label>
+          <select name="locale_code" id="FooterLanguage" class="footer__locale-select"
+            onchange="this.closest('form').submit()">
+            {%- for language in localization.available_languages -%}
+              <option value="{{ language.iso_code }}"
+                {% if language.iso_code == localization.language.iso_code %}selected{% endif %}
+              >
+                {{- language.endonym_name | capitalize -}}
+              </option>
+            {%- endfor -%}
+          </select>
+        {% endform %}
+      </div>
+    {%- endif -%}
+
+  </div>{%- comment -%} .footer__legal {%- endcomment -%}
+
+</footer>
+
+{% schema %}
+{
+  "name": "Footer",
+  "class": "section-footer",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Footer logo",
+      "info": "Leave blank to use shop name"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background colour",
+      "default": "#0d0d0f"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_locale_selector",
+      "label": "Show language selector",
+      "default": false
+    }
+  ],
+  "blocks": [
+    {
+      "type": "brand",
+      "name": "Brand / Logo",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "tagline",
+          "label": "Tagline",
+          "default": "Luxury beauty essentials crafted for your most radiant self."
+        }
+      ]
+    },
+    {
+      "type": "nav_column",
+      "name": "Navigation column",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Column heading",
+          "default": "Shop"
+        },
+        {
+          "type": "link_list",
+          "id": "menu",
+          "label": "Menu"
+        }
+      ]
+    },
+    {
+      "type": "newsletter",
+      "name": "Newsletter",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "heading",
+          "label": "Heading",
+          "default": "<p>Stay <em>Radiant</em></p>"
+        },
+        {
+          "type": "text",
+          "id": "subtext",
+          "label": "Subtext",
+          "default": "Early access to new launches, beauty rituals & exclusive offers."
+        },
+        {
+          "type": "checkbox",
+          "id": "show_legal",
+          "label": "Show GDPR legal text",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "trust_badges",
+      "name": "Trust badges",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "badge_1_label", "label": "Badge 1", "default": "Cruelty-Free" },
+        { "type": "text", "id": "badge_2_label", "label": "Badge 2", "default": "100% Vegan" },
+        { "type": "text", "id": "badge_3_label", "label": "Badge 3", "default": "Clean Beauty" },
+        { "type": "text", "id": "badge_4_label", "label": "Badge 4", "default": "Dermatologist Tested" },
+        { "type": "text", "id": "badge_5_label", "label": "Badge 5", "default": "Sustainably Sourced" },
+        { "type": "text", "id": "badge_6_label", "label": "Badge 6", "default": "Recyclable Packaging" }
+      ]
+    },
+    {
+      "type": "payment_icons",
+      "name": "Payment icons",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_payment_icons",
+          "label": "Show payment icons",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "Text",
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Content",
+          "default": "<p>Free shipping on orders over $75. Free returns within 30 days.</p>"
+        }
+      ]
+    },
+    {
+      "type": "spacer",
+      "name": "Spacer",
+      "settings": [
+        {
+          "type": "range",
+          "id": "height",
+          "label": "Height",
+          "min": 8,
+          "max": 80,
+          "step": 4,
+          "unit": "px",
+          "default": 24
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Footer",
+      "blocks": [
+        { "type": "brand" },
+        {
+          "type": "nav_column",
+          "settings": { "heading": "Shop", "menu": "footer-shop" }
+        },
+        {
+          "type": "nav_column",
+          "settings": { "heading": "Help", "menu": "footer-help" }
+        },
+        {
+          "type": "newsletter",
+          "settings": {
+            "heading": "<p>Stay <em>Radiant</em></p>",
+            "subtext": "Early access to new launches, beauty rituals & exclusive offers."
+          }
+        },
+        { "type": "trust_badges" },
+        { "type": "payment_icons" }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "groups": ["footer"]
+  }
+}
+{% endschema %}

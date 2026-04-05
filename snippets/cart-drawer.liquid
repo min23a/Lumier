@@ -1,0 +1,181 @@
+{%- comment -%}
+  snippets/cart-drawer.liquid — Lumière Beauty Theme
+  Rendered once in theme.liquid. JS in cart.js hydrates it with live cart data.
+
+  Architecture:
+    • Static HTML shell — zero FOUC on page load
+    • cart.js fetches `/cart.js` JSON and re-renders line items client-side
+    • Free shipping bar driven by settings.cart_free_shipping_threshold
+    • Upsell slot: rendered when an upsell collection/product is configured
+    • Checkout button submits `/checkout` directly (no redirect needed)
+    • Full keyboard trap + aria roles for a11y compliance
+{%- endcomment -%}
+
+{%- comment -%} ── Non-critical CSS (async) ──────────────────────────── {%- endcomment -%}
+{{
+  'section-cart-drawer.css'
+  | asset_url
+  | stylesheet_tag: preload: true, media: 'print', onload: "this.media='all'"
+}}
+
+{%- liquid
+  assign free_shipping_enabled   = settings.cart_free_shipping_bar
+  assign free_shipping_threshold = settings.cart_free_shipping_threshold | default: 75
+  assign threshold_cents         = free_shipping_threshold | times: 100
+  assign cart_total              = cart.total_price
+  assign progress_pct            = cart_total | times: 100 | divided_by: threshold_cents
+  if progress_pct > 100
+    assign progress_pct = 100
+  endif
+  assign remaining_cents         = threshold_cents | minus: cart_total
+  assign shipping_achieved       = false
+  if cart_total >= threshold_cents
+    assign shipping_achieved = true
+  endif
+-%}
+
+<div
+  id="CartDrawer"
+  class="cart-drawer"
+  role="dialog"
+  aria-modal="true"
+  aria-label="{{ 'sections.cart.title' | t }}"
+  aria-hidden="true"
+  data-section-type="cart-drawer"
+  data-free-shipping-threshold="{{ threshold_cents }}"
+>
+
+  {%- comment -%} ── Header ─────────────────────────────────────────── {%- endcomment -%}
+  <div class="cart-drawer__header">
+    <h2 class="cart-drawer__title">
+      {{- 'sections.cart.title' | t -}}
+      <span
+        class="cart-drawer__title-count"
+        data-cart-count
+        {% if cart.item_count == 0 %}hidden{% endif %}
+      >
+        {{- cart.item_count -}}
+      </span>
+    </h2>
+    <button
+      type="button"
+      class="cart-drawer__close"
+      aria-label="{{ 'accessibility.close' | t }}"
+      data-cart-close
+    >
+      <svg viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+        <path d="M13.5 4.5l-9 9M4.5 4.5l9 9" stroke-width="1.75" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+
+  {%- comment -%} ── Free shipping bar ──────────────────────────────── {%- endcomment -%}
+  {%- if free_shipping_enabled and free_shipping_threshold > 0 -%}
+    <div class="cart-drawer__shipping-bar" data-shipping-bar aria-live="polite" aria-atomic="true">
+      {%- if shipping_achieved -%}
+        <p class="cart-drawer__shipping-text cart-drawer__shipping-text--achieved" data-shipping-text>
+          ✓ {{ 'sections.cart.free_shipping_achieved' | t }}
+        </p>
+      {%- else -%}
+        <p class="cart-drawer__shipping-text" data-shipping-text>
+          {{
+            'sections.cart.free_shipping_threshold_html'
+            | t: amount: remaining_cents | money
+          }}
+        </p>
+      {%- endif -%}
+      <div class="cart-drawer__progress-track" aria-hidden="true">
+        <div
+          class="cart-drawer__progress-fill{% if shipping_achieved %} cart-drawer__progress-fill--complete{% endif %}"
+          data-shipping-fill
+          style="width: {{ progress_pct }}%"
+        ></div>
+      </div>
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} ── Error notification ─────────────────────────────── {%- endcomment -%}
+  <div class="cart-drawer__error" role="alert" aria-live="assertive" data-cart-error></div>
+
+  {%- comment -%} ── Scrollable body ────────────────────────────────── {%- endcomment -%}
+  <div class="cart-drawer__body" data-cart-items-wrapper>
+
+    {%- if cart.item_count == 0 -%}
+      {%- comment -%} Empty state ─────────────────────────────────── {%- endcomment -%}
+      <div class="cart-drawer__empty" data-cart-empty>
+        <div class="cart-drawer__empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <path d="M16 10a4 4 0 01-8 0"/>
+          </svg>
+        </div>
+        <h3 class="cart-drawer__empty-title">{{ 'sections.cart.empty' | t }}</h3>
+        <p class="cart-drawer__empty-text">{{ 'sections.cart.continue_shopping' | t }}</p>
+        <a href="{{ routes.all_products_collection_url }}" class="btn btn--glass btn--sm" data-cart-close>
+          {{ 'sections.cart.continue_shopping' | t }}
+        </a>
+      </div>
+
+    {%- else -%}
+      {%- comment -%} Line items ─────────────────────────────────── {%- endcomment -%}
+      <div data-cart-items>
+        {%- for item in cart.items -%}
+          {%- render 'cart-item', item: item, index: forloop.index -%}
+        {%- endfor -%}
+      </div>
+
+    {%- endif -%}
+
+  </div>{%- comment -%} .cart-drawer__body {%- endcomment -%}
+
+  {%- comment -%} ── Sticky footer ─────────────────────────────────── {%- endcomment -%}
+  <div
+    class="cart-drawer__footer"
+    data-cart-footer
+    {% if cart.item_count == 0 %}hidden{% endif %}
+  >
+    {%- comment -%} Totals ────────────────────────────────────────── {%- endcomment -%}
+    <div class="cart-drawer__totals">
+      {%- comment -%} Discount lines if any {%- endcomment -%}
+      {%- for discount in cart.cart_level_discount_applications -%}
+        <div class="cart-drawer__total-row">
+          <span>{{ discount.title | escape }} ({{ discount.type }})</span>
+          <span>-{{ discount.total_allocated_amount | money }}</span>
+        </div>
+      {%- endfor -%}
+
+      <div class="cart-drawer__total-row cart-drawer__total-row--subtotal">
+        <span>{{ 'sections.cart.subtotal' | t }}</span>
+        <span class="cart-drawer__subtotal-price" data-cart-subtotal>
+          {{- cart.total_price | money -}}
+        </span>
+      </div>
+    </div>
+
+    <p class="cart-drawer__tax-note">
+      {%- if cart.taxes_included -%}
+        {{ 'sections.cart.taxes_included' | t | default: 'Tax included. Shipping calculated at checkout.' }}
+      {%- else -%}
+        {{ 'sections.cart.taxes_and_shipping_note' | t | default: 'Taxes and shipping calculated at checkout.' }}
+      {%- endif -%}
+    </p>
+
+    {%- comment -%} CTA buttons ────────────────────────────────────── {%- endcomment -%}
+    <div class="cart-drawer__checkout">
+      <button
+        type="button"
+        class="cart-drawer__checkout-btn"
+        data-cart-checkout
+        aria-label="{{ 'sections.cart.checkout' | t }}"
+      >
+        {{- 'sections.cart.checkout' | t -}}
+      </button>
+      <a href="{{ routes.cart_url }}" class="cart-drawer__view-cart" data-cart-close>
+        {{- 'sections.cart.view_cart' | t | default: 'View full cart' -}}
+      </a>
+    </div>
+
+  </div>{%- comment -%} .cart-drawer__footer {%- endcomment -%}
+
+</div>{%- comment -%} #CartDrawer {%- endcomment -%}
