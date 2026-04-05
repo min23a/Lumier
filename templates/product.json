@@ -1,0 +1,111 @@
+{
+  "sections": {
+    "product-template": {
+      "type": "product-template",
+      "blocks": {
+        "vendor": {
+          "type": "vendor",
+          "settings": {}
+        },
+        "title": {
+          "type": "title",
+          "settings": {}
+        },
+        "price": {
+          "type": "price",
+          "settings": {}
+        },
+        "rating": {
+          "type": "rating",
+          "settings": {
+            "show_rating": true
+          }
+        },
+        "short_description": {
+          "type": "short_description",
+          "settings": {}
+        },
+        "variant_picker": {
+          "type": "variant_picker",
+          "settings": {
+            "picker_type": "button"
+          }
+        },
+        "quantity": {
+          "type": "quantity",
+          "settings": {}
+        },
+        "atc_button": {
+          "type": "atc_button",
+          "settings": {
+            "show_dynamic_checkout": true
+          }
+        },
+        "trust_bar": {
+          "type": "trust_bar",
+          "settings": {
+            "badge_1": "Free Shipping $75+",
+            "badge_2": "Free Returns",
+            "badge_3": "Clean Beauty",
+            "badge_4": "Cruelty-Free"
+          }
+        },
+        "collapsible_tab_1": {
+          "type": "collapsible_tab",
+          "settings": {
+            "heading": "Description",
+            "content_type": "description",
+            "open_by_default": true
+          }
+        },
+        "collapsible_tab_2": {
+          "type": "collapsible_tab",
+          "settings": {
+            "heading": "Ingredients",
+            "content_type": "metafield",
+            "metafield_key": "product.metafields.custom.ingredients",
+            "open_by_default": false
+          }
+        },
+        "collapsible_tab_3": {
+          "type": "collapsible_tab",
+          "settings": {
+            "heading": "How to Use",
+            "content_type": "metafield",
+            "metafield_key": "product.metafields.custom.how_to_use",
+            "open_by_default": false
+          }
+        },
+        "share": {
+          "type": "share",
+          "settings": {}
+        }
+      },
+      "block_order": [
+        "vendor",
+        "title",
+        "price",
+        "rating",
+        "short_description",
+        "variant_picker",
+        "quantity",
+        "atc_button",
+        "trust_bar",
+        "collapsible_tab_1",
+        "collapsible_tab_2",
+        "collapsible_tab_3",
+        "share"
+      ],
+      "settings": {
+        "gallery_layout": "thumbnails",
+        "enable_zoom": true,
+        "enable_video_autoplay": false,
+        "sticky_atc": true,
+        "show_breadcrumb": true,
+        "section_padding_top": 48,
+        "section_padding_bottom": 64
+      }
+    }
+  },
+  "order": ["product-template"]
+}

@@ -1,0 +1,783 @@
+{%- comment -%}
+  sections/collection-template.liquid — Lumière Beauty Theme
+  Collection page with Shopify Storefront Filtering, live sort,
+  product card grid, quick-add, and URL-driven filter state.
+
+  Blocks:
+    collection_banner  — Image, title, description header
+    filter_and_sort    — Filtering sidebar + sort bar controls
+
+  Features:
+    • Shopify Storefront Filtering (filter.liquid compatible)
+    • Sort by (relevance, price-asc/desc, best-selling, date)
+    • Active filter chips with individual and clear-all removal
+    • Collapsible filter groups (accessibility-compliant)
+    • Product grid: 2, 3, or 4 columns (merchant-configurable)
+    • Product cards: hover swap image, quick-add, swatch strip, rating
+    • Standard + infinite scroll pagination
+    • All URL params preserved on sort/filter for shareable links
+{%- endcomment -%}
+
+{% style %}
+  #shopify-section-{{ section.id }} .product-grid {
+    --grid-cols:        {{ section.settings.columns_desktop | default: 3 }};
+    --grid-cols-mobile: {{ section.settings.columns_mobile  | default: 2 }};
+    --card-ratio: {% case section.settings.image_ratio %}
+      {%- when 'portrait'  -%}3/4
+      {%- when 'landscape' -%}4/3
+      {%- else -%}1/1
+    {%- endcase %};
+  }
+  #shopify-section-{{ section.id }} .collection-template {
+    padding-top:    {{ section.settings.section_padding_top    | default: 40 }}px;
+    padding-bottom: {{ section.settings.section_padding_bottom | default: 64 }}px;
+  }
+{% endstyle %}
+
+{{
+  'section-collection.css'
+  | asset_url
+  | stylesheet_tag: preload: true, media: 'print', onload: "this.media='all'"
+}}
+
+{%- liquid
+  assign sort_by              = collection.sort_by | default: section.settings.default_sort
+  assign products_per_page    = section.settings.products_per_page | default: 24
+  assign enable_filtering     = false
+  assign enable_sorting       = false
+  assign show_product_count   = false
+  assign show_quick_add       = section.settings.quick_add
+  assign show_vendor          = section.settings.show_vendor
+  assign show_rating          = section.settings.show_rating
+  assign show_secondary_img   = section.settings.show_secondary_image
+  for block in section.blocks
+    if block.type == 'filter_and_sort'
+      assign enable_filtering   = block.settings.enable_filtering
+      assign enable_sorting     = block.settings.enable_sorting
+      assign show_product_count = block.settings.show_product_count
+    endif
+  endfor
+
+  assign active_filter_count = 0
+  for filter in collection.filters
+    assign active_filter_count = active_filter_count | plus: filter.active_values.size
+  endfor
+-%}
+
+{%- comment -%} ── Collection banner block ────────────────────────── {%- endcomment -%}
+{%- for block in section.blocks -%}
+  {%- if block.type == 'collection_banner' -%}
+    {%- liquid
+      assign has_img    = collection.image != blank and block.settings.show_image
+      assign banner_ht  = block.settings.banner_height | default: 280
+    -%}
+    <div
+      class="collection-banner{% if has_img %} collection-banner--has-image{% else %} collection-banner--no-image{% endif %}"
+      style="--banner-height:{{ banner_ht }}px;"
+      {{ block.shopify_attributes }}
+    >
+      {%- if has_img -%}
+        <div class="collection-banner__media" aria-hidden="true">
+          <img
+            src="{{ collection.image | image_url: width: 1200 }}"
+            srcset="
+              {{ collection.image | image_url: width: 600  }} 600w,
+              {{ collection.image | image_url: width: 900  }} 900w,
+              {{ collection.image | image_url: width: 1200 }} 1200w,
+              {{ collection.image | image_url: width: 1800 }} 1800w
+            "
+            sizes="100vw"
+            alt="{{ collection.image.alt | default: collection.title | escape }}"
+            width="{{ collection.image.width }}"
+            height="{{ collection.image.height }}"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          >
+          <div class="collection-banner__overlay"></div>
+        </div>
+      {%- endif -%}
+      <div class="collection-banner__content">
+        <h1 class="collection-banner__title">{{ collection.title }}</h1>
+        {%- if block.settings.show_description and collection.description != blank -%}
+          <div class="collection-banner__description">
+            {{ collection.description | strip_html | truncate: 200 }}
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+  {%- endif -%}
+{%- endfor -%}
+
+<div class="collection-template" data-collection-section>
+
+  {%- comment -%} ── Toolbar (filter toggle, active chips, sort) ──── {%- endcomment -%}
+  {%- for block in section.blocks -%}
+    {%- if block.type == 'filter_and_sort' -%}
+      <div class="collection-toolbar" {{ block.shopify_attributes }}>
+        <div class="collection-toolbar__left">
+
+          {%- comment -%} Filter toggle ──────────────────────────── {%- endcomment -%}
+          {%- if enable_filtering and collection.filters.size > 0 -%}
+            <button
+              type="button"
+              class="filter-toggle-btn{% if active_filter_count > 0 %} is-active{% endif %}"
+              data-filter-toggle
+              aria-expanded="false"
+              aria-controls="FilterSidebar"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M1 4h14M4 8h8M7 12h2" stroke-linecap="round"/>
+              </svg>
+              {{- 'sections.collection.filters' | t -}}
+              {%- if active_filter_count > 0 -%}
+                <span class="badge badge--accent" style="font-size:0.6rem;padding:0.1em 0.5em;">
+                  {{- active_filter_count -}}
+                </span>
+              {%- endif -%}
+            </button>
+          {%- endif -%}
+
+          {%- comment -%} Product count ──────────────────────────── {%- endcomment -%}
+          {%- if show_product_count -%}
+            <span class="collection-toolbar__count">
+              {{-
+                'sections.collection.product_count_other'
+                | t: count: collection.products_count
+              -}}
+            </span>
+          {%- endif -%}
+
+          {%- comment -%} Active filter chips ────────────────────── {%- endcomment -%}
+          {%- if active_filter_count > 0 -%}
+            <div class="active-filters" aria-label="{{ 'sections.collection.active_filters' | t | default: 'Active filters' }}">
+              {%- for filter in collection.filters -%}
+                {%- for value in filter.active_values -%}
+                  <a href="{{ value.url_to_remove }}" class="active-filter-chip">
+                    {{- value.label | escape -}}
+                    <span class="active-filter-chip__remove" aria-hidden="true">×</span>
+                  </a>
+                {%- endfor -%}
+              {%- endfor -%}
+              <a href="{{ collection.url }}" class="clear-all-btn">
+                {{- 'sections.collection.clear_filters' | t -}}
+              </a>
+            </div>
+          {%- endif -%}
+        </div>
+
+        {%- comment -%} Sort select ──────────────────────────────── {%- endcomment -%}
+        {%- if enable_sorting -%}
+          <div class="sort-select-wrap">
+            <label for="SortBy" class="visually-hidden">{{ 'sections.collection.sort_by' | t }}</label>
+            <select
+              id="SortBy"
+              name="sort_by"
+              class="sort-select"
+              aria-describedby="a11y-sort-message"
+              data-sort-select
+            >
+              {%- for option in collection.sort_options -%}
+                <option
+                  value="{{ option.value }}"
+                  {% if option.value == sort_by %}selected{% endif %}
+                >
+                  {{- option.name | escape -}}
+                </option>
+              {%- endfor -%}
+            </select>
+          </div>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+  {%- endfor -%}
+
+  {%- comment -%} ── Filter + Grid layout ──────────────────────────── {%- endcomment -%}
+  <div class="collection-layout{% if enable_filtering and collection.filters.size > 0 %} collection-layout--with-sidebar{% endif %}">
+
+    {%- comment -%} ── Filter sidebar ─────────────────────────────── {%- endcomment -%}
+    {%- if enable_filtering and collection.filters.size > 0 -%}
+      <aside
+        class="filter-sidebar"
+        id="FilterSidebar"
+        aria-label="{{ 'sections.collection.filters' | t }}"
+      >
+        <form id="FilterForm" data-filter-form>
+          {%- for filter in collection.filters -%}
+            {%- case filter.type -%}
+              {%- when 'list' -%}
+                <details class="filter-group filter-group--open" data-filter-group open>
+                  <summary class="filter-group__trigger" data-filter-group-trigger>
+                    {{- filter.label | escape -}}
+                    <svg class="filter-group__icon" viewBox="0 0 14 14" aria-hidden="true">
+                      <path d="M2 5l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </summary>
+                  <div class="filter-group__body">
+                    <div class="filter-group__values">
+                      {%- for value in filter.values -%}
+                        <label class="filter-value">
+                          <input
+                            type="checkbox"
+                            name="{{ value.param_name }}"
+                            value="{{ value.value }}"
+                            class="filter-value__checkbox"
+                            {% if value.active %}checked{% endif %}
+                            {% if value.count == 0 and value.active == false %}disabled{% endif %}
+                            data-filter-input
+                          >
+                          <span class="filter-value__label">{{ value.label | escape }}</span>
+                          <span class="filter-value__count">({{ value.count }})</span>
+                        </label>
+                      {%- endfor -%}
+                    </div>
+                  </div>
+                </details>
+
+              {%- when 'price_range' -%}
+                <div class="filter-group filter-group--open" data-filter-group>
+                  <button type="button" class="filter-group__trigger" data-filter-group-trigger aria-expanded="true">
+                    {{- filter.label | escape -}}
+                    <svg class="filter-group__icon" viewBox="0 0 14 14" aria-hidden="true">
+                      <path d="M2 5l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <div class="filter-group__body">
+                    <div class="filter-price-range">
+                      <div class="filter-price-inputs">
+                        <input
+                          type="number"
+                          name="{{ filter.min_value.param_name }}"
+                          id="FilterMinPrice"
+                          class="filter-price-input"
+                          placeholder="{{ 'sections.collection.filter_price_from' | t | default: 'From' }}"
+                          value="{{ filter.min_value.value | divided_by: 100 | ceil }}"
+                          min="0"
+                          max="{{ filter.range_max | divided_by: 100 | ceil }}"
+                          data-filter-input
+                        >
+                        <span style="color:var(--color-text-subtle);font-size:0.8rem;">–</span>
+                        <input
+                          type="number"
+                          name="{{ filter.max_value.param_name }}"
+                          id="FilterMaxPrice"
+                          class="filter-price-input"
+                          placeholder="{{ 'sections.collection.filter_price_to' | t | default: 'To' }}"
+                          value="{{ filter.max_value.value | divided_by: 100 | ceil }}"
+                          min="0"
+                          max="{{ filter.range_max | divided_by: 100 | ceil }}"
+                          data-filter-input
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            {%- endcase -%}
+          {%- endfor -%}
+        </form>
+      </aside>
+    {%- endif -%}
+
+    {%- comment -%} ── Product grid ───────────────────────────────── {%- endcomment -%}
+    <div>
+      <div
+        class="product-grid"
+        id="ProductGrid"
+        data-product-grid
+        role="list"
+        aria-label="{{ 'sections.collection.products' | t | default: 'Products' }}"
+      >
+        {%- paginate collection.products by products_per_page -%}
+          {%- if collection.products.size > 0 -%}
+            {%- for product in collection.products -%}
+              {%- liquid
+                assign card_img    = product.featured_image
+                assign card_img2   = product.images[1]
+                assign card_price  = product.price
+                assign card_compare = product.compare_at_price
+                assign on_sale     = false
+                if card_compare > card_price
+                  assign on_sale = true
+                  assign discount_pct = card_compare | minus: card_price | times: 100 | divided_by: card_compare | round
+                endif
+                assign sold_out    = true
+                if product.available
+                  assign sold_out = false
+                endif
+              -%}
+              <div
+                class="product-card animate-on-scroll"
+                role="listitem"
+                data-product-card
+              >
+                {%- comment -%} Media ────────────────────────────── {%- endcomment -%}
+                <div class="product-card__media">
+                  <div class="product-card__media-inner">
+                    {%- if card_img != blank -%}
+                      <img
+                        src="{{ card_img | image_url: width: 600 }}"
+                        srcset="
+                          {{ card_img | image_url: width: 300 }} 300w,
+                          {{ card_img | image_url: width: 450 }} 450w,
+                          {{ card_img | image_url: width: 600 }} 600w,
+                          {{ card_img | image_url: width: 800 }} 800w
+                        "
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                        alt="{{ card_img.alt | default: product.title | escape }}"
+                        class="product-card__img product-card__img--primary"
+                        width="{{ card_img.width }}"
+                        height="{{ card_img.height }}"
+                        loading="{{ forloop.index <= 6 | map: 'lazy' | default: 'lazy' }}{% if forloop.index <= 6 %}eager{% else %}lazy{% endif %}"
+                        decoding="async"
+                      >
+
+                      {%- if show_secondary_img and card_img2 != blank -%}
+                        <img
+                          src="{{ card_img2 | image_url: width: 600 }}"
+                          srcset="
+                            {{ card_img2 | image_url: width: 300 }} 300w,
+                            {{ card_img2 | image_url: width: 600 }} 600w
+                          "
+                          sizes="(max-width: 640px) 50vw, 33vw"
+                          alt="{{ card_img2.alt | default: product.title | escape }}"
+                          class="product-card__img product-card__img--secondary"
+                          width="{{ card_img2.width }}"
+                          height="{{ card_img2.height }}"
+                          loading="lazy"
+                          decoding="async"
+                          aria-hidden="true"
+                        >
+                      {%- endif -%}
+                    {%- else -%}
+                      {{ 'product-1' | placeholder_svg_tag: 'product-card__img product-card__img--primary' }}
+                    {%- endif -%}
+                  </div>
+
+                  {%- comment -%} Badges ─────────────────────────── {%- endcomment -%}
+                  <div class="product-card__badges">
+                    {%- if on_sale and sold_out == false -%}
+                      <span class="badge badge--accent">-{{ discount_pct }}%</span>
+                    {%- endif -%}
+                    {%- if sold_out -%}
+                      <span class="badge badge--glass">{{ 'sections.product.sold_out' | t }}</span>
+                    {%- endif -%}
+                    {%- if product.tags contains 'new' or product.tags contains 'New' -%}
+                      <span class="badge badge--glass">{{ 'sections.product.new_badge' | t }}</span>
+                    {%- endif -%}
+                  </div>
+
+                  {%- comment -%} Quick add ──────────────────────── {%- endcomment -%}
+                  {%- if show_quick_add -%}
+                    <div class="product-card__quick-add" aria-hidden="true">
+                      {%- if product.has_only_default_variant -%}
+                        <button
+                          type="button"
+                          class="product-card__quick-add-btn"
+                          data-quick-add
+                          data-variant-id="{{ product.variants.first.id }}"
+                          {% unless product.available %}disabled{% endunless %}
+                          aria-label="{{ 'sections.product.add_to_cart' | t }} — {{ product.title | escape }}"
+                        >
+                          {{- 'sections.product.add_to_cart' | t -}}
+                        </button>
+                      {%- else -%}
+                        <a
+                          href="{{ product.url }}"
+                          class="product-card__quick-add-btn"
+                          aria-label="{{ 'sections.collection.choose_options' | t | default: 'Choose options' }} — {{ product.title | escape }}"
+                        >
+                          {{- 'sections.collection.choose_options' | t | default: 'Choose Options' -}}
+                        </a>
+                      {%- endif -%}
+                    </div>
+                  {%- endif -%}
+
+                  {%- comment -%} Wishlist ───────────────────────── {%- endcomment -%}
+                  <button type="button" class="product-card__wishlist" aria-label="{{ 'sections.collection.wishlist' | t | default: 'Add to wishlist' }} {{ product.title | escape }}" data-wishlist-btn data-product-id="{{ product.id }}">
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M8 13.7S1.5 9.5 1.5 5.5a3.5 3.5 0 017-0 3.5 3.5 0 017 0C15.5 9.5 8 13.7 8 13.7z"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {%- comment -%} Card info ──────────────────────────── {%- endcomment -%}
+                <div class="product-card__info">
+                  {%- if show_vendor and product.vendor != blank -%}
+                    <span class="product-card__vendor">{{ product.vendor | escape }}</span>
+                  {%- endif -%}
+
+                  <a href="{{ product.url }}" class="product-card__title">
+                    {{- product.title | escape -}}
+                  </a>
+
+                  {%- comment -%} Rating ─────────────────────────── {%- endcomment -%}
+                  {%- if show_rating -%}
+                    {%- assign rating_val = product.metafields.reviews.rating.value -%}
+                    {%- assign rating_cnt = product.metafields.reviews.rating_count.value -%}
+                    {%- if rating_val != blank -%}
+                      <div class="product-card__rating" aria-label="{{ rating_val }} {{ 'sections.product.out_of_5' | t | default: 'out of 5 stars' }}">
+                        {%- for i in (1..5) -%}
+                          <svg class="product-card__rating-star{% if i > rating_val %} product-card__rating-star--empty{% endif %}" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+                            <path d="M5 0l.97 3h3.15l-2.55 1.85.98 3L5 6.2 2.45 7.85l.98-3L.88 3h3.15z"/>
+                          </svg>
+                        {%- endfor -%}
+                        {%- if rating_cnt -%}
+                          <span class="product-card__rating-count">({{ rating_cnt }})</span>
+                        {%- endif -%}
+                      </div>
+                    {%- endif -%}
+                  {%- endif -%}
+
+                  {%- comment -%} Price ──────────────────────────── {%- endcomment -%}
+                  <div class="product-card__price-row">
+                    <span class="product-card__price{% if on_sale and sold_out == false %} product-card__price--sale{% endif %}">
+                      {%- if product.price_varies -%}
+                        {{ 'products.product.from_price_html' | t: price: product.price_min | money }}
+                      {%- else -%}
+                        {{ card_price | money }}
+                      {%- endif -%}
+                    </span>
+                    {%- if on_sale and sold_out == false -%}
+                      <span class="product-card__compare">{{ card_compare | money }}</span>
+                    {%- endif -%}
+                  </div>
+
+                  {%- comment -%} Swatch preview ─────────────────── {%- endcomment -%}
+                  {%- liquid
+                    assign color_option = nil
+                    for option in product.options_with_values
+                      assign name_lower = option.name | downcase
+                      if name_lower == 'color' or name_lower == 'colour' or name_lower == 'shade'
+                        assign color_option = option
+                        break
+                      endif
+                    endfor
+                  -%}
+                  {%- if color_option != blank and color_option.values.size > 1 -%}
+                    <div class="product-card__swatches" aria-label="{{ color_option.name | escape }}">
+                      {%- for value in color_option.values limit: 5 -%}
+                        <span
+                          class="product-card__swatch"
+                          style="background-color:{{ value | handle | replace: '-', '' }};"
+                          title="{{ value | escape }}"
+                          aria-label="{{ value | escape }}"
+                        ></span>
+                      {%- endfor -%}
+                      {%- if color_option.values.size > 5 -%}
+                        <span class="product-card__swatch product-card__swatch--more">+{{ color_option.values.size | minus: 5 }}</span>
+                      {%- endif -%}
+                    </div>
+                  {%- endif -%}
+
+                </div>{%- comment -%} .product-card__info {%- endcomment -%}
+              </div>{%- comment -%} .product-card {%- endcomment -%}
+
+            {%- endfor -%}
+
+          {%- else -%}
+            <div class="collection-no-results">
+              <h2 class="collection-no-results__title">{{ 'sections.collection.no_products' | t }}</h2>
+              <p  class="collection-no-results__text">{{ 'sections.collection.no_products_description' | t | default: 'Try removing some filters or clearing your search.' }}</p>
+              <a href="{{ collection.url }}" class="btn btn--glass">{{ 'sections.collection.clear_filters' | t }}</a>
+            </div>
+          {%- endif -%}
+
+          {%- comment -%} ── Pagination ─────────────────────────────── {%- endcomment -%}
+          {%- if paginate.pages > 1 -%}
+            <nav class="collection-pagination" aria-label="{{ 'general.pagination.label' | t | default: 'Pagination' }}" style="grid-column:1/-1;">
+              {%- if paginate.previous -%}
+                <a href="{{ paginate.previous.url }}" class="pagination__item pagination__item--arrow" aria-label="{{ 'general.pagination.previous' | t | default: 'Previous page' }}">
+                  ←
+                </a>
+              {%- else -%}
+                <span class="pagination__item pagination__item--arrow pagination__item--disabled" aria-disabled="true">←</span>
+              {%- endif -%}
+
+              {%- for part in paginate.parts -%}
+                {%- if part.is_link -%}
+                  <a href="{{ part.url }}" class="pagination__item">{{ part.title }}</a>
+                {%- elsif part.title == paginate.current_page -%}
+                  <span class="pagination__item pagination__item--active" aria-current="page">{{ part.title }}</span>
+                {%- else -%}
+                  <span class="pagination__item">{{ part.title }}</span>
+                {%- endif -%}
+              {%- endfor -%}
+
+              {%- if paginate.next -%}
+                <a href="{{ paginate.next.url }}" class="pagination__item pagination__item--arrow" aria-label="{{ 'general.pagination.next' | t | default: 'Next page' }}">
+                  →
+                </a>
+              {%- else -%}
+                <span class="pagination__item pagination__item--arrow pagination__item--disabled" aria-disabled="true">→</span>
+              {%- endif -%}
+            </nav>
+          {%- endif -%}
+
+        {%- endpaginate -%}
+      </div>{%- comment -%} .product-grid {%- endcomment -%}
+    </div>
+
+  </div>{%- comment -%} .collection-layout {%- endcomment -%}
+</div>{%- comment -%} .collection-template {%- endcomment -%}
+
+{%- comment -%} ── Inline JS for filter/sort/quick-add ─────────────── {%- endcomment -%}
+<script>
+(function() {
+  'use strict';
+
+  // ── Sort select: navigate on change ───────────────────────────────────
+  const sortSel = document.querySelector('[data-sort-select]');
+  if (sortSel) {
+    sortSel.addEventListener('change', function() {
+      const url = new URL(window.location.href);
+      url.searchParams.set('sort_by', this.value);
+      url.searchParams.delete('page');
+      window.location.href = url.toString();
+    });
+  }
+
+  // ── Filter form: submit on checkbox/input change ───────────────────────
+  const filterForm = document.getElementById('FilterForm');
+  if (filterForm) {
+    let filterTimer;
+    filterForm.addEventListener('change', function(e) {
+      if (!e.target.closest('[data-filter-input]')) return;
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => {
+        const url  = new URL(window.location.href);
+        const data = new FormData(filterForm);
+        // Clear existing filter params
+        for (const key of [...url.searchParams.keys()]) {
+          if (key.startsWith('filter.')) url.searchParams.delete(key);
+        }
+        url.searchParams.delete('page');
+        for (const [key, val] of data.entries()) {
+          if (val !== '') url.searchParams.append(key, val);
+        }
+        // Preserve sort
+        const sortVal = sortSel?.value;
+        if (sortVal) url.searchParams.set('sort_by', sortVal);
+        window.location.href = url.toString();
+      }, 400);
+    });
+  }
+
+  // ── Filter toggle (sidebar collapse) ──────────────────────────────────
+  const filterToggle = document.querySelector('[data-filter-toggle]');
+  const filterSidebar = document.getElementById('FilterSidebar');
+  if (filterToggle && filterSidebar) {
+    filterToggle.addEventListener('click', function() {
+      const isOpen = filterSidebar.classList.toggle('is-mobile-open');
+      this.setAttribute('aria-expanded', isOpen);
+    });
+  }
+
+  // ── Filter group accordion (details fallback for non-details browsers) ─
+  document.querySelectorAll('[data-filter-group-trigger]').forEach(trigger => {
+    trigger.addEventListener('click', function() {
+      const group  = this.closest('[data-filter-group]');
+      const isOpen = group.classList.toggle('filter-group--open');
+      this.setAttribute('aria-expanded', isOpen);
+    });
+  });
+
+  // ── Quick add ─────────────────────────────────────────────────────────
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-quick-add]');
+    if (!btn || btn.disabled) return;
+    const variantId = btn.dataset.variantId;
+    if (!variantId) return;
+
+    btn.setAttribute('aria-busy', 'true');
+    btn.disabled = true;
+
+    fetch(window.routes.cartAddUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body:    JSON.stringify({ items: [{ id: parseInt(variantId, 10), quantity: 1 }] })
+    })
+    .then(r => r.json())
+    .then(() => fetch(`${window.routes.cartUrl}.js`).then(r => r.json()))
+    .then(cart => {
+      document.dispatchEvent(new CustomEvent('lumiere:cart:updated', {
+        bubbles: true, detail: { count: cart.item_count, cart }
+      }));
+      window.Lumiere?.cart?.open?.();
+      btn.setAttribute('aria-busy', 'false');
+      btn.disabled = false;
+    })
+    .catch(() => {
+      btn.setAttribute('aria-busy', 'false');
+      btn.disabled = false;
+      document.dispatchEvent(new CustomEvent('lumiere:toast', {
+        detail: { message: window.cartStrings?.error || 'Could not add to cart.', type: 'error' }
+      }));
+    });
+  });
+
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Collection",
+  "tag": "section",
+  "class": "section-collection",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Grid"
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "Products per page",
+      "min": 8, "max": 48, "step": 4, "default": 24
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "label": "Columns (desktop)",
+      "min": 2, "max": 4, "step": 1, "default": 3
+    },
+    {
+      "type": "range",
+      "id": "columns_mobile",
+      "label": "Columns (mobile)",
+      "min": 1, "max": 2, "step": 1, "default": 2
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Image ratio",
+      "default": "square",
+      "options": [
+        { "value": "square",    "label": "Square (1:1)" },
+        { "value": "portrait",  "label": "Portrait (3:4)" },
+        { "value": "landscape", "label": "Landscape (4:3)" }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_secondary_image",
+      "label": "Show second image on hover",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Product cards"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "label": "Show vendor / brand",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "label": "Show star rating",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "quick_add",
+      "label": "Quick Add to Cart",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "section_padding_top",
+      "label": "Padding top",
+      "min": 0, "max": 80, "step": 8, "unit": "px", "default": 40
+    },
+    {
+      "type": "range",
+      "id": "section_padding_bottom",
+      "label": "Padding bottom",
+      "min": 0, "max": 120, "step": 8, "unit": "px", "default": 64
+    }
+  ],
+  "blocks": [
+    {
+      "type": "collection_banner",
+      "name": "Collection banner",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_image",
+          "label": "Show collection image",
+          "default": true
+        },
+        {
+          "type": "checkbox",
+          "id": "show_description",
+          "label": "Show collection description",
+          "default": true
+        },
+        {
+          "type": "range",
+          "id": "banner_height",
+          "label": "Banner height",
+          "min": 160, "max": 500, "step": 20, "unit": "px", "default": 280
+        }
+      ]
+    },
+    {
+      "type": "filter_and_sort",
+      "name": "Filters and sort",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "enable_filtering",
+          "label": "Enable filtering",
+          "default": true,
+          "info": "Requires Shopify Storefront Filtering to be configured in your Online Store > Navigation."
+        },
+        {
+          "type": "checkbox",
+          "id": "enable_sorting",
+          "label": "Enable sorting",
+          "default": true
+        },
+        {
+          "type": "select",
+          "id": "default_sort",
+          "label": "Default sort",
+          "default": "manual",
+          "options": [
+            { "value": "manual",       "label": "Featured" },
+            { "value": "best-selling", "label": "Best Selling" },
+            { "value": "title-ascending",  "label": "A–Z" },
+            { "value": "title-descending", "label": "Z–A" },
+            { "value": "price-ascending",  "label": "Price: Low → High" },
+            { "value": "price-descending", "label": "Price: High → Low" },
+            { "value": "created-descending", "label": "Newest" }
+          ]
+        },
+        {
+          "type": "checkbox",
+          "id": "show_product_count",
+          "label": "Show product count",
+          "default": true
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Collection — Standard",
+      "blocks": [
+        { "type": "collection_banner" },
+        { "type": "filter_and_sort" }
+      ]
+    }
+  ]
+}
+{% endschema %}
