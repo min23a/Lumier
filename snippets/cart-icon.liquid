@@ -1,0 +1,54 @@
+{%- comment -%}
+  snippets/cart-icon.liquid — Lumière Beauty Theme
+  Renders the cart icon button with an animated live count bubble.
+  Used inside the header icon group.
+
+  Usage:
+    {% render 'cart-icon' %}
+
+  Behaviour:
+    - Clicking opens the cart drawer (if settings.cart_type == 'drawer')
+    - Clicking navigates to /cart (if settings.cart_type == 'page')
+    - Count bubble is updated by cart.js via lumiere:cart:updated event
+{%- endcomment -%}
+
+{%- liquid
+  assign cart_type    = settings.cart_type | default: 'drawer'
+  assign item_count   = cart.item_count
+-%}
+
+{%- if cart_type == 'drawer' -%}
+  <button
+    type="button"
+    class="header__icon-btn header__icon-btn--cart"
+    aria-label="{{ 'sections.header.cart' | t }} ({{ item_count }})"
+    data-open-cart
+  >
+{%- else -%}
+  <a
+    href="{{ routes.cart_url }}"
+    class="header__icon-btn header__icon-btn--cart"
+    aria-label="{{ 'sections.header.cart' | t }} ({{ item_count }})"
+  >
+{%- endif -%}
+
+  {%- comment -%} Cart bag icon ─────────────────────────────────────────── {%- endcomment -%}
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <path d="M16 10a4 4 0 01-8 0"/>
+  </svg>
+
+  <span
+    class="cart-count"
+    aria-hidden="true"
+    data-count="{{ item_count }}"
+  >
+    {{- item_count -}}
+  </span>
+
+{%- if cart_type == 'drawer' -%}
+  </button>
+{%- else -%}
+  </a>
+{%- endif -%}

@@ -1,0 +1,115 @@
+{%- comment -%}
+  snippets/nav-item.liquid — Lumière Beauty Theme
+  Renders a single navigation link that may have a standard dropdown
+  OR trigger a mega-menu panel.
+
+  Parameters:
+    link          {object}  — Shopify linklist link object
+    mega_menus    {array}   — Array of mega menu IDs from header settings
+    depth         {number}  — Nesting level (0 = top-level, 1 = child)
+    mobile        {boolean} — Render mobile-specific markup when true
+
+  Recursive: calls itself for child links at depth 1.
+{%- endcomment -%}
+
+{%- liquid
+  assign depth      = depth      | default: 0
+  assign mobile     = mobile     | default: false
+  assign has_children = false
+  if link.links and link.links.size > 0
+    assign has_children = true
+  endif
+
+  # Check if this item has a corresponding mega-menu panel
+  assign link_handle   = link.title | handleize
+  assign is_mega       = false
+  if mega_menus contains link_handle
+    assign is_mega = true
+  endif
+-%}
+
+{%- if mobile == false -%}
+  {%- comment -%} ── Desktop nav item ─────────────────────────────────── {%- endcomment -%}
+  <li
+    class="nav-item{% if is_mega %} nav-item--mega{% endif %}"
+    role="none"
+  >
+    <a
+      href="{{ link.url }}"
+      class="nav-item__link{% if link.active %} nav-item__link--active{% endif %}"
+      role="menuitem"
+      {% if has_children or is_mega %}
+        aria-haspopup="true"
+        aria-expanded="false"
+        {% if is_mega %}data-mega-menu="{{ link_handle }}"{% endif %}
+      {% endif %}
+    >
+      {{- link.title | escape -}}
+
+      {%- if has_children or is_mega -%}
+        <svg class="nav-item__chevron" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
+          <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      {%- endif -%}
+    </a>
+
+    {%- if has_children and is_mega == false -%}
+      {%- comment -%} ── Standard dropdown ─────────────────────────────── {%- endcomment -%}
+      <ul class="nav-dropdown" role="menu" aria-label="{{ link.title | escape }}">
+        {%- for child_link in link.links -%}
+          <li role="none">
+            <a
+              href="{{ child_link.url }}"
+              class="nav-dropdown__link{% if child_link.active %} nav-dropdown__link--active{% endif %}"
+              role="menuitem"
+            >
+              {{- child_link.title | escape -}}
+            </a>
+          </li>
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+  </li>
+
+{%- else -%}
+  {%- comment -%} ── Mobile nav item ──────────────────────────────────── {%- endcomment -%}
+  <li class="mobile-nav__item">
+    {%- if has_children -%}
+      <button
+        type="button"
+        class="mobile-nav__link{% if link.active %} mobile-nav__link--active{% endif %}"
+        data-mobile-sub-toggle
+        aria-expanded="false"
+        aria-controls="mobile-sub-{{ link_handle }}"
+      >
+        {{- link.title | escape -}}
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="transition:transform var(--transition-fast)">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <ul
+        class="mobile-nav__sub"
+        id="mobile-sub-{{ link_handle }}"
+        role="list"
+      >
+        {%- for child_link in link.links -%}
+          <li>
+            <a
+              href="{{ child_link.url }}"
+              class="mobile-nav__sub-link{% if child_link.active %} mobile-nav__sub-link--active{% endif %}"
+            >
+              {{- child_link.title | escape -}}
+            </a>
+          </li>
+        {%- endfor -%}
+      </ul>
+    {%- else -%}
+      <a
+        href="{{ link.url }}"
+        class="mobile-nav__link{% if link.active %} mobile-nav__link--active{% endif %}"
+      >
+        {{- link.title | escape -}}
+      </a>
+    {%- endif -%}
+  </li>
+{%- endif -%}

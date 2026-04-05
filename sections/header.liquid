@@ -1,0 +1,565 @@
+{%- comment -%}
+  sections/header.liquid — Lumière Beauty Theme
+  Sticky glassmorphic header with:
+    • Logo (image or text)
+    • Multi-level desktop navigation (dropdown + mega-menu support)
+    • Search icon → overlay with predictive search
+    • Account icon
+    • Cart icon with live count
+    • Mobile hamburger → slide-in drawer
+    • Announcement bar (optional block)
+    • OS 2.0 blocks for mega-menu panels
+
+  Blocks:
+    announcement   — Dismissable top bar
+    mega_menu      — Full-width panel keyed to a nav item handle
+{%- endcomment -%}
+
+{%- comment -%} ── Critical layout CSS (inlined) ──────────────────────── {%- endcomment -%}
+{% style %}
+  :root {
+    --header-height: {{ section.settings.header_height | default: 72 }}px;
+  }
+  #shopify-section-{{ section.id }} .site-header {
+    height: var(--header-height);
+  }
+  {%- if section.settings.header_transparent -%}
+    #shopify-section-{{ section.id }} .site-header {
+      background: transparent;
+      border-bottom-color: transparent;
+    }
+  {%- endif -%}
+{% endstyle %}
+
+{%- comment -%} ── Non-critical CSS (async) ───────────────────────────── {%- endcomment -%}
+{{ 'section-header.css' | asset_url | stylesheet_tag: preload: true, media: 'print', onload: "this.media='all'" }}
+
+{%- liquid
+  assign main_menu    = section.settings.main_menu
+  assign linklists    = linklists[main_menu]
+
+  # Collect mega-menu handles from blocks
+  assign mega_handles = ''
+  for block in section.blocks
+    if block.type == 'mega_menu'
+      assign mega_handles = mega_handles | append: block.settings.nav_item_handle | append: ','
+    endif
+  endfor
+  assign mega_menus = mega_handles | split: ','
+
+  assign show_search  = section.settings.show_search
+  assign show_account = section.settings.show_account
+-%}
+
+{%- comment -%} ── Announcement bar block ─────────────────────────────── {%- endcomment -%}
+{%- for block in section.blocks -%}
+  {%- if block.type == 'announcement' -%}
+    <div
+      class="announcement-bar"
+      {{ block.shopify_attributes }}
+      role="complementary"
+      aria-label="{{ 'accessibility.announcement' | t | default: 'Announcement' }}"
+    >
+      {%- if block.settings.link != blank -%}
+        <a href="{{ block.settings.link }}">{{- block.settings.text | escape -}}</a>
+      {%- else -%}
+        {{- block.settings.text | escape -}}
+      {%- endif -%}
+      {%- if block.settings.dismissable -%}
+        <button
+          type="button"
+          class="announcement-bar__close"
+          aria-label="{{ 'accessibility.close' | t }}"
+        >
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M15 5L5 15M5 5l10 10"/>
+          </svg>
+        </button>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+{%- endfor -%}
+
+{%- comment -%} ── Main header ────────────────────────────────────────── {%- endcomment -%}
+<header
+  class="site-header{% if section.settings.header_transparent %} site-header--transparent{% endif %}"
+  role="banner"
+  data-section-id="{{ section.id }}"
+>
+  <div class="header__inner">
+
+    {%- comment -%} ── Logo ─────────────────────────────────────────── {%- endcomment -%}
+    <a href="{{ routes.root_url }}" class="header__logo" aria-label="{{ shop.name }}">
+      {%- if section.settings.logo != blank -%}
+        <img
+          src="{{ section.settings.logo | image_url: height: 80 }}"
+          srcset="
+            {{ section.settings.logo | image_url: height: 56 }} 1x,
+            {{ section.settings.logo | image_url: height: 80 }} 2x
+          "
+          alt="{{ section.settings.logo.alt | default: shop.name | escape }}"
+          class="header__logo-image"
+          width="{{ section.settings.logo | image_url: height: 56 | split: 'width=' | last | split: '&' | first }}"
+          height="56"
+          loading="eager"
+          fetchpriority="high"
+        >
+      {%- else -%}
+        <span class="header__logo-text">{{ shop.name }}</span>
+      {%- endif -%}
+    </a>
+
+    {%- comment -%} ── Desktop navigation ────────────────────────────── {%- endcomment -%}
+    {%- if linklists != blank -%}
+      <nav
+        class="header__nav"
+        aria-label="{{ 'accessibility.main_navigation' | t | default: 'Main navigation' }}"
+      >
+        <ul class="header__nav-list" role="menubar">
+          {%- for link in linklists.links -%}
+            {%- render 'nav-item',
+              link: link,
+              mega_menus: mega_menus,
+              depth: 0,
+              mobile: false
+            -%}
+          {%- endfor -%}
+        </ul>
+      </nav>
+    {%- endif -%}
+
+    {%- comment -%} ── Icon group ───────────────────────────────────── {%- endcomment -%}
+    <div class="header__icons">
+
+      {%- comment -%} Search ──────────────────────────────────────── {%- endcomment -%}
+      {%- if show_search -%}
+        <button
+          type="button"
+          class="header__icon-btn header__icon-btn--search"
+          data-open-search
+          aria-label="{{ 'sections.header.search' | t }}"
+          aria-expanded="false"
+          aria-controls="SearchOverlay"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+      {%- endif -%}
+
+      {%- comment -%} Account ─────────────────────────────────────── {%- endcomment -%}
+      {%- if show_account and shop.customer_accounts_enabled -%}
+        <a
+          href="{% if customer %}{{ routes.account_url }}{% else %}{{ routes.account_login_url }}{% endif %}"
+          class="header__icon-btn header__icon-btn--account"
+          aria-label="{{ 'sections.header.account' | t }}"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </a>
+      {%- endif -%}
+
+      {%- comment -%} Cart ────────────────────────────────────────── {%- endcomment -%}
+      {%- render 'cart-icon' -%}
+
+      {%- comment -%} Mobile hamburger ────────────────────────────── {%- endcomment -%}
+      <button
+        type="button"
+        class="header__hamburger"
+        aria-label="{{ 'sections.header.open_menu' | t | default: 'Open menu' }}"
+        aria-expanded="false"
+        aria-controls="MobileNav"
+      >
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+
+    </div>{%- comment -%} .header__icons {%- endcomment -%}
+
+  </div>{%- comment -%} .header__inner {%- endcomment -%}
+</header>
+
+{%- comment -%} ── Mega-menu panels (one per block) ──────────────────── {%- endcomment -%}
+{%- for block in section.blocks -%}
+  {%- if block.type == 'mega_menu' -%}
+    {%- assign panel_handle = block.settings.nav_item_handle | handleize -%}
+    <div
+      class="nav-mega"
+      id="MegaMenu-{{ panel_handle }}"
+      data-mega-panel="{{ panel_handle }}"
+      aria-hidden="true"
+      {{ block.shopify_attributes }}
+    >
+      <div class="nav-mega__inner">
+        <div class="nav-mega__grid">
+
+          {%- comment -%} Column groups ─────────────────────────── {%- endcomment -%}
+          {%- for i in (1..4) -%}
+            {%- assign col_title_key = 'column_' | append: i | append: '_title' -%}
+            {%- assign col_menu_key  = 'column_' | append: i | append: '_menu' -%}
+            {%- if block.settings[col_title_key] != blank or block.settings[col_menu_key] != blank -%}
+              <div>
+                {%- if block.settings[col_title_key] != blank -%}
+                  <p class="nav-mega__group-title">{{ block.settings[col_title_key] | escape }}</p>
+                {%- endif -%}
+                {%- if block.settings[col_menu_key] != blank -%}
+                  {%- assign col_links = linklists[block.settings[col_menu_key]] -%}
+                  {%- if col_links != blank -%}
+                    {%- for col_link in col_links.links -%}
+                      <a href="{{ col_link.url }}" class="nav-mega__link{% if col_link.active %} nav-mega__link--active{% endif %}">
+                        {{- col_link.title | escape -}}
+                      </a>
+                    {%- endfor -%}
+                  {%- endif -%}
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+          {%- endfor -%}
+
+          {%- comment -%} Optional featured image ─────────────── {%- endcomment -%}
+          {%- if block.settings.feature_image != blank -%}
+            <a href="{{ block.settings.feature_link | default: '#' }}" class="nav-mega__feature">
+              <img
+                src="{{ block.settings.feature_image | image_url: width: 400 }}"
+                alt="{{ block.settings.feature_image.alt | escape }}"
+                width="400"
+                height="300"
+                loading="lazy"
+                decoding="async"
+              >
+              {%- if block.settings.feature_label != blank -%}
+                <span class="nav-mega__feature-label">{{ block.settings.feature_label | escape }}</span>
+              {%- endif -%}
+            </a>
+          {%- endif -%}
+
+        </div>
+      </div>
+    </div>
+  {%- endif -%}
+{%- endfor -%}
+
+{%- comment -%} ── Search overlay ─────────────────────────────────────── {%- endcomment -%}
+{%- if show_search -%}
+  <div
+    class="search-overlay"
+    id="SearchOverlay"
+    role="dialog"
+    aria-modal="true"
+    aria-label="{{ 'sections.search.title' | t }}"
+    aria-hidden="true"
+  >
+    <div class="search-overlay__inner">
+      <div class="search-overlay__form" role="search">
+        <svg class="search-overlay__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+
+        <input
+          type="search"
+          name="q"
+          class="search-overlay__input"
+          placeholder="{{ 'sections.search.placeholder' | t }}"
+          aria-label="{{ 'sections.search.title' | t }}"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+        >
+
+        <button type="button" class="search-overlay__close" aria-label="{{ 'accessibility.close' | t }}">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M15 5L5 15M5 5l10 10"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="search-overlay__results" hidden aria-live="polite" aria-atomic="true"></div>
+    </div>
+  </div>
+{%- endif -%}
+
+{%- comment -%} ── Mobile navigation drawer ───────────────────────────── {%- endcomment -%}
+<nav
+  class="mobile-nav"
+  id="MobileNav"
+  aria-label="{{ 'accessibility.mobile_navigation' | t | default: 'Mobile navigation' }}"
+  aria-hidden="true"
+>
+  <div class="mobile-nav__header">
+    <a href="{{ routes.root_url }}" class="header__logo" aria-label="{{ shop.name }}">
+      {%- if section.settings.logo != blank -%}
+        <img
+          src="{{ section.settings.logo | image_url: height: 56 }}"
+          alt="{{ section.settings.logo.alt | default: shop.name | escape }}"
+          class="header__logo-image"
+          height="40"
+          loading="lazy"
+        >
+      {%- else -%}
+        <span class="header__logo-text" style="font-size:1.1rem;">{{ shop.name }}</span>
+      {%- endif -%}
+    </a>
+    <button type="button" class="mobile-nav__close" aria-label="{{ 'accessibility.close_menu' | t }}">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M15 5L5 15M5 5l10 10"/>
+      </svg>
+    </button>
+  </div>
+
+  {%- if linklists != blank -%}
+    <ul class="mobile-nav__list" role="list">
+      {%- for link in linklists.links -%}
+        {%- render 'nav-item', link: link, mobile: true -%}
+      {%- endfor -%}
+    </ul>
+  {%- endif -%}
+
+  <div class="mobile-nav__footer">
+    {%- if show_account and shop.customer_accounts_enabled -%}
+      <a
+        href="{% if customer %}{{ routes.account_url }}{% else %}{{ routes.account_login_url }}{% endif %}"
+        class="mobile-nav__footer-link"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+        {% if customer %}{{ 'customer.account.title' | t }}{% else %}{{ 'customer.login.title' | t }}{% endif %}
+      </a>
+    {%- endif -%}
+
+    {%- comment -%} Social links ────────────────────────────────────── {%- endcomment -%}
+    <div style="display:flex;gap:var(--spacing-sm);margin-top:var(--spacing-sm)">
+      {%- if settings.social_instagram_link != blank -%}
+        <a href="{{ settings.social_instagram_link }}" class="mobile-nav__footer-link" rel="noopener" target="_blank" aria-label="Instagram">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+          </svg>
+        </a>
+      {%- endif -%}
+      {%- if settings.social_tiktok_link != blank -%}
+        <a href="{{ settings.social_tiktok_link }}" class="mobile-nav__footer-link" rel="noopener" target="_blank" aria-label="TikTok">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V9.13a8.16 8.16 0 004.77 1.52V7.22a4.85 4.85 0 01-1-.53z"/>
+          </svg>
+        </a>
+      {%- endif -%}
+    </div>
+  </div>
+</nav>
+
+{%- comment -%} ── Header JS ────────────────────────────────────────────── {%- endcomment -%}
+<script src="{{ 'header-nav.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Header",
+  "class": "section-header",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Logo"
+    },
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Logo image",
+      "info": "Recommended: SVG or PNG with transparent background, min 200px tall"
+    },
+    {
+      "type": "range",
+      "id": "logo_max_width",
+      "label": "Logo max width",
+      "min": 60,
+      "max": 300,
+      "step": 10,
+      "unit": "px",
+      "default": 140
+    },
+    {
+      "type": "header",
+      "content": "Navigation"
+    },
+    {
+      "type": "link_list",
+      "id": "main_menu",
+      "label": "Main menu",
+      "default": "main-menu"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "header_height",
+      "label": "Header height",
+      "min": 56,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "default": 72
+    },
+    {
+      "type": "checkbox",
+      "id": "header_transparent",
+      "label": "Transparent on page load",
+      "default": true,
+      "info": "Automatically turns solid when user scrolls or on non-hero pages"
+    },
+    {
+      "type": "header",
+      "content": "Icons"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_search",
+      "label": "Show search",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_account",
+      "label": "Show account icon",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "announcement",
+      "name": "Announcement bar",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Message",
+          "default": "Free shipping on orders over $75 ✦ Use code LUMIERE10 for 10% off"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link (optional)"
+        },
+        {
+          "type": "checkbox",
+          "id": "dismissable",
+          "label": "Show close button",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "mega_menu",
+      "name": "Mega menu",
+      "settings": [
+        {
+          "type": "text",
+          "id": "nav_item_handle",
+          "label": "Nav item handle",
+          "info": "Exact handle of the nav link that triggers this panel (e.g. 'shop', 'skincare')"
+        },
+        {
+          "type": "header",
+          "content": "Column 1"
+        },
+        {
+          "type": "text",
+          "id": "column_1_title",
+          "label": "Title"
+        },
+        {
+          "type": "link_list",
+          "id": "column_1_menu",
+          "label": "Menu"
+        },
+        {
+          "type": "header",
+          "content": "Column 2"
+        },
+        {
+          "type": "text",
+          "id": "column_2_title",
+          "label": "Title"
+        },
+        {
+          "type": "link_list",
+          "id": "column_2_menu",
+          "label": "Menu"
+        },
+        {
+          "type": "header",
+          "content": "Column 3"
+        },
+        {
+          "type": "text",
+          "id": "column_3_title",
+          "label": "Title"
+        },
+        {
+          "type": "link_list",
+          "id": "column_3_menu",
+          "label": "Menu"
+        },
+        {
+          "type": "header",
+          "content": "Column 4"
+        },
+        {
+          "type": "text",
+          "id": "column_4_title",
+          "label": "Title"
+        },
+        {
+          "type": "link_list",
+          "id": "column_4_menu",
+          "label": "Menu"
+        },
+        {
+          "type": "header",
+          "content": "Featured image"
+        },
+        {
+          "type": "image_picker",
+          "id": "feature_image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "feature_label",
+          "label": "Image label"
+        },
+        {
+          "type": "url",
+          "id": "feature_link",
+          "label": "Image link"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Header",
+      "blocks": [
+        {
+          "type": "announcement",
+          "settings": {
+            "text": "Free shipping on orders over $75 ✦ Use code LUMIERE10 for 10% off",
+            "dismissable": true
+          }
+        }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "groups": ["header"]
+  }
+}
+{% endschema %}
