@@ -1,0 +1,503 @@
+{%- comment -%}
+  sections/announcement-bar.liquid — Lumière Beauty Theme
+  Standalone announcement bar section (separate from header block).
+  Supports: rotating messages (ticker), single static message,
+  countdown timer, icon + text, close button.
+
+  Blocks:
+    message   — Single text/link announcement (up to 6, auto-rotates)
+    countdown — Live countdown timer to a date
+    spacer    — Separator within the bar
+
+  This section lives in the header-group via section groups, or
+  can be placed at the top of any page template's sections list.
+{%- endcomment -%}
+
+{% style %}
+  #shopify-section-{{ section.id }} .announcement-section {
+    --ann-bg:     {{ section.settings.background_color | default: '#c9a96e' }};
+    --ann-text:   {{ section.settings.text_color       | default: '#0d0d0f' }};
+    --ann-link:   {{ section.settings.link_color       | default: '#0d0d0f' }};
+    background:   var(--ann-bg);
+    color:        var(--ann-text);
+    font-size:    {{ section.settings.font_size | default: 13 }}px;
+  }
+{% endstyle %}
+
+<style>
+  /* Critical styles for announcement bar – inlined to prevent FOUC */
+  .announcement-section {
+    position:   relative;
+    z-index:    calc(var(--z-header, 400) + 1);
+    width:      100%;
+    overflow:   hidden;
+    transition: max-height 0.35s ease, opacity 0.35s ease, padding 0.35s ease;
+  }
+  .announcement-section.is-dismissed {
+    max-height: 0 !important;
+    opacity:    0;
+    padding:    0;
+    pointer-events: none;
+  }
+  .announcement-section__inner {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    gap:             1rem;
+    padding:         0.55rem 3rem 0.55rem 1.5rem;
+    max-width:       var(--container-max, 1440px);
+    margin:          0 auto;
+    min-height:      40px;
+    position:        relative;
+  }
+  /* Ticker (rotating messages) */
+  .announcement-ticker {
+    overflow:        hidden;
+    flex:            1;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    position:        relative;
+    min-height:      1.4em;
+  }
+  .announcement-message {
+    position:   absolute;
+    top:        50%;
+    left:       50%;
+    transform:  translate(-50%, -50%);
+    white-space: nowrap;
+    display:    flex;
+    align-items: center;
+    gap:        0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    width:      100%;
+    justify-content: center;
+    text-align: center;
+  }
+  .announcement-message.is-hidden {
+    opacity:   0;
+    transform: translate(-50%, calc(-50% + 8px));
+    pointer-events: none;
+  }
+  .announcement-message.is-entering {
+    animation: annEnter 0.4s ease forwards;
+  }
+  @keyframes annEnter {
+    from { opacity: 0; transform: translate(-50%, calc(-50% - 8px)); }
+    to   { opacity: 1; transform: translate(-50%, -50%); }
+  }
+  .announcement-message a { color: var(--ann-link); }
+  .announcement-message__icon {
+    display:    inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    font-size:  0.9em;
+  }
+  /* Separator between messages */
+  .announcement-sep {
+    font-size:   0.7em;
+    opacity:     0.5;
+    flex-shrink: 0;
+  }
+  /* Navigation dots */
+  .announcement-nav {
+    display:     flex;
+    align-items: center;
+    gap:         5px;
+    flex-shrink: 0;
+  }
+  .announcement-nav__dot {
+    width:         5px;
+    height:        5px;
+    border-radius: 50%;
+    background:    currentColor;
+    opacity:       0.30;
+    border:        none;
+    cursor:        pointer;
+    padding:       0;
+    transition:    opacity 0.2s, width 0.2s;
+  }
+  .announcement-nav__dot.is-active {
+    opacity: 0.90;
+    width:   12px;
+    border-radius: 3px;
+  }
+  /* Close button */
+  .announcement-close {
+    position:  absolute;
+    right:     0.75rem;
+    top:       50%;
+    transform: translateY(-50%);
+    opacity:   0.65;
+    width:     28px;
+    height:    28px;
+    display:   flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: opacity 0.2s, background 0.2s;
+    color:     var(--ann-text);
+  }
+  .announcement-close:hover { opacity: 1; background: rgba(0,0,0,0.08); }
+  .announcement-close svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+  /* Countdown */
+  .announcement-countdown {
+    display:     flex;
+    align-items: center;
+    gap:         4px;
+    font-weight: 700;
+    font-size:   0.9em;
+    flex-shrink: 0;
+  }
+  .announcement-countdown__unit {
+    display:       flex;
+    flex-direction: column;
+    align-items:   center;
+    min-width:     28px;
+  }
+  .announcement-countdown__num {
+    font-family: var(--font-heading, serif);
+    font-size:   1.1em;
+    line-height: 1;
+  }
+  .announcement-countdown__label {
+    font-size:  0.55em;
+    opacity:    0.70;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+  .announcement-countdown__sep {
+    font-size:  1em;
+    opacity:    0.60;
+    margin-bottom: 6px;
+    animation:  cdBlink 1s step-end infinite;
+  }
+  @keyframes cdBlink { 50% { opacity: 0; } }
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .announcement-message,
+    .announcement-section { transition: none; }
+    .announcement-message.is-entering { animation: none; opacity: 1; transform: translate(-50%,-50%); }
+  }
+</style>
+
+{%- liquid
+  assign message_blocks   = section.blocks | where: 'type', 'message'
+  assign countdown_blocks = section.blocks | where: 'type', 'countdown'
+  assign has_close        = section.settings.show_close
+  assign storage_key      = 'lumiere-ann-' | append: section.id
+-%}
+
+<div
+  class="announcement-section"
+  id="AnnouncementBar-{{ section.id }}"
+  role="complementary"
+  aria-label="{{ 'accessibility.announcement' | t | default: 'Announcement' }}"
+  data-ann-section
+  data-storage-key="{{ storage_key }}"
+  data-dismissable="{{ has_close }}"
+>
+  <div class="announcement-section__inner">
+
+    {%- comment -%} ── Message ticker ────────────────────────────── {%- endcomment -%}
+    {%- if message_blocks.size > 0 -%}
+      <div
+        class="announcement-ticker"
+        role="region"
+        aria-live="{{ message_blocks.size | at_least: 2 | map: 'polite' | first | default: 'off' }}"
+        aria-atomic="true"
+        data-ann-ticker
+      >
+        {%- for block in message_blocks -%}
+          <div
+            class="announcement-message{% unless forloop.first %} is-hidden{% endunless %}"
+            data-ann-message="{{ forloop.index0 }}"
+            {{ block.shopify_attributes }}
+          >
+            {%- if block.settings.icon != blank -%}
+              <span class="announcement-message__icon" aria-hidden="true">{{ block.settings.icon }}</span>
+            {%- endif -%}
+
+            {%- if block.settings.link != blank -%}
+              <a href="{{ block.settings.link }}" {% if block.settings.new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}>
+                {{- block.settings.text | escape -}}
+              </a>
+            {%- else -%}
+              <span>{{- block.settings.text | escape -}}</span>
+            {%- endif -%}
+          </div>
+        {%- endfor -%}
+      </div>
+
+      {%- comment -%} ── Countdown block (inline with messages) ─── {%- endcomment -%}
+      {%- for block in countdown_blocks -%}
+        {%- if block.settings.end_date != blank -%}
+          <div
+            class="announcement-countdown"
+            data-countdown="{{ block.settings.end_date }}"
+            aria-label="{{ 'sections.announcement.countdown_label' | t | default: 'Sale ends in' }}"
+            {{ block.shopify_attributes }}
+          >
+            <span style="font-weight:600;font-size:0.82em;opacity:0.80;">{{ block.settings.prefix | default: 'Ends in' | escape }}</span>
+            <span class="announcement-countdown__unit">
+              <span class="announcement-countdown__num" data-cd-hours>--</span>
+              <span class="announcement-countdown__label">h</span>
+            </span>
+            <span class="announcement-countdown__sep">:</span>
+            <span class="announcement-countdown__unit">
+              <span class="announcement-countdown__num" data-cd-minutes>--</span>
+              <span class="announcement-countdown__label">m</span>
+            </span>
+            <span class="announcement-countdown__sep">:</span>
+            <span class="announcement-countdown__unit">
+              <span class="announcement-countdown__num" data-cd-seconds>--</span>
+              <span class="announcement-countdown__label">s</span>
+            </span>
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+
+      {%- comment -%} Dot nav (only if multiple messages) ─────────── {%- endcomment -%}
+      {%- if message_blocks.size > 1 -%}
+        <div class="announcement-nav" aria-label="{{ 'accessibility.carousel_navigation' | t | default: 'Message navigation' }}">
+          {%- for block in message_blocks -%}
+            <button
+              type="button"
+              class="announcement-nav__dot{% if forloop.first %} is-active{% endif %}"
+              data-ann-dot="{{ forloop.index0 }}"
+              aria-label="{{ 'accessibility.go_to_slide' | t: index: forloop.index | default: 'Go to message ' | append: forloop.index }}"
+            ></button>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    {%- else -%}
+      {%- comment -%} Fallback if no blocks added yet ──────────────── {%- endcomment -%}
+      <span style="font-weight:600;">{{ 'sections.announcement.default_text' | t | default: 'Free shipping on orders over $75 ✦ Use code LUMIERE10 for 10% off' }}</span>
+    {%- endif -%}
+
+    {%- comment -%} ── Close button ──────────────────────────────── {%- endcomment -%}
+    {%- if has_close -%}
+      <button
+        type="button"
+        class="announcement-close"
+        data-ann-close
+        aria-label="{{ 'accessibility.close' | t }}"
+      >
+        <svg viewBox="0 0 14 14" aria-hidden="true">
+          <path d="M11 3L3 11M3 3l8 8"/>
+        </svg>
+      </button>
+    {%- endif -%}
+
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const bar = document.getElementById('AnnouncementBar-{{ section.id }}');
+  if (!bar) return;
+
+  const storageKey   = bar.dataset.storageKey;
+  const dismissable  = bar.dataset.dismissable === 'true';
+
+  /* ── Dismiss (session storage) ───────────────────────────────────────── */
+  if (dismissable && sessionStorage.getItem(storageKey)) {
+    bar.classList.add('is-dismissed');
+    bar.setAttribute('aria-hidden', 'true');
+  }
+  const closeBtn = bar.querySelector('[data-ann-close]');
+  closeBtn?.addEventListener('click', () => {
+    bar.classList.add('is-dismissed');
+    bar.setAttribute('aria-hidden', 'true');
+    sessionStorage.setItem(storageKey, '1');
+  });
+
+  /* ── Rotating ticker ─────────────────────────────────────────────────── */
+  const messages  = bar.querySelectorAll('[data-ann-message]');
+  const dots      = bar.querySelectorAll('[data-ann-dot]');
+  const rotateMs  = {{ section.settings.rotation_speed | default: 4000 }};
+  let   current   = 0;
+
+  const goTo = (idx) => {
+    messages[current]?.classList.add('is-hidden');
+    messages[current]?.classList.remove('is-entering');
+    dots[current]?.classList.remove('is-active');
+    current = (idx + messages.length) % messages.length;
+    const next = messages[current];
+    if (next) { next.classList.remove('is-hidden'); next.classList.add('is-entering'); }
+    dots[current]?.classList.add('is-active');
+  };
+
+  dots.forEach((dot, i) => dot.addEventListener('click', () => { clearInterval(ticker); goTo(i); }));
+
+  let ticker;
+  if (messages.length > 1 && rotateMs > 0) {
+    ticker = setInterval(() => goTo(current + 1), rotateMs);
+    bar.addEventListener('mouseenter', () => clearInterval(ticker));
+    bar.addEventListener('mouseleave', () => { ticker = setInterval(() => goTo(current + 1), rotateMs); });
+  }
+
+  /* ── Countdown timer ─────────────────────────────────────────────────── */
+  const countdown = bar.querySelector('[data-countdown]');
+  if (countdown) {
+    const endDate  = new Date(countdown.dataset.countdown);
+    const hEl = countdown.querySelector('[data-cd-hours]');
+    const mEl = countdown.querySelector('[data-cd-minutes]');
+    const sEl = countdown.querySelector('[data-cd-seconds]');
+
+    const pad = n => String(n).padStart(2, '0');
+    const tick = () => {
+      const diff = endDate - Date.now();
+      if (diff <= 0) { clearInterval(cdTimer); countdown.textContent = '{{ "sections.announcement.sale_ended" | t | default: "Sale ended" }}'; return; }
+      const totalSec = Math.floor(diff / 1000);
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      if (hEl) hEl.textContent = pad(h);
+      if (mEl) mEl.textContent = pad(m);
+      if (sEl) sEl.textContent = pad(s);
+    };
+    const cdTimer = setInterval(tick, 1000);
+    tick();
+  }
+
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Announcement bar",
+  "tag": "section",
+  "class": "section-announcement",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Design"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background colour",
+      "default": "#c9a96e"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text colour",
+      "default": "#0d0d0f"
+    },
+    {
+      "type": "color",
+      "id": "link_color",
+      "label": "Link colour",
+      "default": "#0d0d0f"
+    },
+    {
+      "type": "range",
+      "id": "font_size",
+      "label": "Font size",
+      "min": 11, "max": 16, "step": 1, "unit": "px", "default": 13
+    },
+    {
+      "type": "header",
+      "content": "Behaviour"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_close",
+      "label": "Show dismiss button",
+      "default": true,
+      "info": "Dismissed state is remembered per browser session."
+    },
+    {
+      "type": "range",
+      "id": "rotation_speed",
+      "label": "Message rotation speed",
+      "min": 0,
+      "max": 10000,
+      "step": 500,
+      "unit": "ms",
+      "default": 4000,
+      "info": "Set to 0 to disable auto-rotation."
+    }
+  ],
+  "blocks": [
+    {
+      "type": "message",
+      "name": "Announcement message",
+      "settings": [
+        {
+          "type": "text",
+          "id": "icon",
+          "label": "Icon / emoji",
+          "info": "Paste an emoji e.g. ✨ ✦ 🎁",
+          "default": "✦"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Message text",
+          "default": "Free shipping on orders over $75"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link (optional)"
+        },
+        {
+          "type": "checkbox",
+          "id": "new_tab",
+          "label": "Open in new tab",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "countdown",
+      "name": "Countdown timer",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "prefix",
+          "label": "Label before timer",
+          "default": "Sale ends in"
+        },
+        {
+          "type": "text",
+          "id": "end_date",
+          "label": "End date & time",
+          "info": "Format: YYYY-MM-DDTHH:MM:SS e.g. 2025-12-31T23:59:59",
+          "default": "2025-12-31T23:59:59"
+        }
+      ]
+    },
+    {
+      "type": "spacer",
+      "name": "Spacer / separator",
+      "settings": [
+        { "type": "range", "id": "height", "label": "Width (px)", "min": 8, "max": 48, "step": 4, "unit": "px", "default": 16 }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Announcement bar",
+      "blocks": [
+        { "type": "message", "settings": { "icon": "✨", "text": "New arrivals — Shop the Spring Collection" } },
+        { "type": "message", "settings": { "icon": "🚚", "text": "Free shipping on orders over $75" } },
+        { "type": "message", "settings": { "icon": "💛", "text": "Use code LUMIERE10 for 10% off your first order" } }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "groups": ["header", "custom.announcements"]
+  }
+}
+{% endschema %}

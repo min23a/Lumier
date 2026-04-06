@@ -1,0 +1,224 @@
+/*
+ * section-featured-collection.css — Lumière Beauty Theme
+ * Featured collection: horizontal carousel (desktop), vertical grid (mobile),
+ * scroll-snap, CSS-only visible track, and JS progressive enhancement.
+ * Non-critical — loaded async.
+ */
+
+/* ── Section shell ────────────────────────────────────────────────────────── */
+.featured-collection { position: relative; overflow: hidden; }
+
+/* ── Section header ───────────────────────────────────────────────────────── */
+.featured-collection__header {
+  display:         flex;
+  align-items:     flex-end;
+  justify-content: space-between;
+  gap:             var(--spacing-lg);
+  margin-bottom:   clamp(1.5rem, 3vw, 2.5rem);
+  flex-wrap:       wrap;
+}
+.featured-collection__heading-group { flex: 1; min-width: 0; }
+.featured-collection__eyebrow {
+  display:        block;
+  font-size:      0.7rem;
+  font-weight:    700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color:          var(--color-accent);
+  margin-bottom:  var(--spacing-xs);
+}
+.featured-collection__title {
+  font-family:    var(--font-heading);
+  font-size:      clamp(1.6rem, 3vw, 2.5rem);
+  font-weight:    var(--font-heading-weight);
+  letter-spacing: -0.025em;
+  line-height:    1.1;
+  color:          var(--color-text);
+}
+.featured-collection__title em { font-style: italic; color: var(--color-accent); }
+.featured-collection__subtitle {
+  margin-top:  var(--spacing-sm);
+  font-size:   0.9375rem;
+  color:       var(--color-text-subtle);
+  line-height: 1.6;
+}
+.featured-collection__view-all {
+  flex-shrink:     0;
+  display:         inline-flex;
+  align-items:     center;
+  gap:             var(--spacing-sm);
+  font-size:       0.78rem;
+  font-weight:     700;
+  letter-spacing:  0.08em;
+  text-transform:  uppercase;
+  color:           var(--color-text-subtle);
+  text-decoration: none;
+  padding:         0.55rem 1.1rem;
+  border:          1px solid rgba(255,255,255,0.12);
+  border-radius:   var(--radius-full);
+  transition:      color var(--transition-fast), border-color var(--transition-fast),
+                   background var(--transition-fast), transform var(--transition-fast);
+  white-space:     nowrap;
+}
+.featured-collection__view-all:hover {
+  color:        var(--color-accent);
+  border-color: rgba(201,169,110,0.35);
+  background:   rgba(201,169,110,0.06);
+  transform:    translateX(2px);
+}
+.featured-collection__view-all svg {
+  width:      14px;
+  height:     14px;
+  stroke:     currentColor;
+  fill:       none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: transform var(--transition-fast);
+}
+.featured-collection__view-all:hover svg { transform: translateX(3px); }
+
+/* ── Carousel track wrapper ───────────────────────────────────────────────── */
+.featured-collection__track-wrap {
+  position: relative;
+}
+
+/* Navigation arrows */
+.featured-collection__arrow {
+  position:        absolute;
+  top:             50%;
+  transform:       translateY(-50%);
+  z-index:         10;
+  width:           44px;
+  height:          44px;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  background:      rgba(13,13,15,0.80);
+  border:          1px solid rgba(255,255,255,0.12);
+  border-radius:   50%;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color:           rgba(255,255,255,0.85);
+  transition:      background var(--transition-fast), color var(--transition-fast),
+                   opacity var(--transition-fast), transform var(--transition-fast);
+  cursor:          pointer;
+}
+.featured-collection__arrow:hover {
+  background: var(--color-accent);
+  color:      #0d0d0f;
+  border-color: transparent;
+}
+.featured-collection__arrow:active { transform: translateY(-50%) scale(0.95); }
+.featured-collection__arrow--prev { left:  -22px; }
+.featured-collection__arrow--next { right: -22px; }
+.featured-collection__arrow[disabled] { opacity: 0.25; pointer-events: none; }
+.featured-collection__arrow svg {
+  width:  18px;
+  height: 18px;
+  stroke: currentColor;
+  fill:   none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Carousel scroll track ────────────────────────────────────────────────── */
+.featured-collection__track {
+  display:                grid;
+  grid-auto-flow:         column;
+  grid-auto-columns:      calc((100% - (var(--visible-cards, 3) - 1) * var(--spacing-lg)) / var(--visible-cards, 3));
+  gap:                    var(--spacing-lg);
+  overflow-x:             auto;
+  scroll-snap-type:       x mandatory;
+  scroll-behavior:        smooth;
+  overscroll-behavior-x:  contain;
+  -webkit-overflow-scrolling: touch;
+  /* Hide scrollbar visually but keep functional */
+  scrollbar-width:        none;
+  padding-bottom:         4px; /* prevent box-shadow clip */
+}
+.featured-collection__track::-webkit-scrollbar { display: none; }
+
+/* Each card snaps */
+.featured-collection__track .product-card { scroll-snap-align: start; }
+
+/* ── Dot navigation ───────────────────────────────────────────────────────── */
+.featured-collection__dots {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             6px;
+  margin-top:      var(--spacing-lg);
+}
+.featured-collection__dot {
+  width:           6px;
+  height:          6px;
+  border-radius:   var(--radius-full);
+  background:      rgba(255,255,255,0.20);
+  border:          none;
+  cursor:          pointer;
+  transition:      width var(--transition-base), background var(--transition-fast);
+  flex-shrink:     0;
+}
+.featured-collection__dot.is-active {
+  width:      20px;
+  background: var(--color-accent);
+}
+
+/* ── Tab pills (category filter) ─────────────────────────────────────────── */
+.featured-collection__tabs {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+.featured-collection__tab {
+  padding:         0.4rem 1rem;
+  border-radius:   var(--radius-full);
+  font-size:       0.78rem;
+  font-weight:     600;
+  letter-spacing:  0.04em;
+  color:           var(--color-text-subtle);
+  background:      rgba(255,255,255,0.04);
+  border:          1px solid rgba(255,255,255,0.10);
+  cursor:          pointer;
+  transition:      all var(--transition-fast);
+  text-decoration: none;
+}
+.featured-collection__tab:hover {
+  color:        var(--color-text);
+  border-color: rgba(255,255,255,0.25);
+  background:   rgba(255,255,255,0.07);
+}
+.featured-collection__tab.is-active {
+  color:        var(--color-accent);
+  border-color: rgba(201,169,110,0.35);
+  background:   rgba(201,169,110,0.08);
+}
+
+/* ── Product card overrides for carousel context ─────────────────────────── */
+.featured-collection .product-card__media { border-radius: var(--radius-lg); }
+.featured-collection .product-card__media-inner {
+  aspect-ratio: var(--fc-card-ratio, 3/4);
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .featured-collection__track { --visible-cards: 2.4; }
+  .featured-collection__arrow--prev { left:  -16px; }
+  .featured-collection__arrow--next { right: -16px; }
+}
+@media (max-width: 768px) {
+  .featured-collection__track { --visible-cards: 1.6; gap: var(--spacing-md); }
+  .featured-collection__arrow { display: none; }
+  .featured-collection__header { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .featured-collection__track { --visible-cards: 1.15; }
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .featured-collection__track { scroll-behavior: auto; }
+  .featured-collection__dot   { transition: none; }
+}

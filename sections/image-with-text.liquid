@@ -1,0 +1,505 @@
+{%- comment -%}
+  sections/image-with-text.liquid — Lumière Beauty Theme
+  Split media + content section with alternating layout.
+
+  Blocks:
+    eyebrow         — Small label
+    heading         — Main H2/H3 with inline italic support
+    text            — Body paragraph(s)
+    feature_item    — Icon + title + description row
+    stats           — Up to 4 metric counters
+    buttons         — Dual CTA group
+    image           — Main media (image or video)
+    image_secondary — Overlapping accent image
+    stat_badge      — Floating glass badge on image
+    spacer          — Gap control
+{%- endcomment -%}
+
+{% style %}
+  #shopify-section-{{ section.id }} .image-with-text {
+    padding-top:    {{ section.settings.padding_top    | default: 80 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | default: 80 }}px;
+    --media-ratio: {% case section.settings.media_ratio %}
+      {%- when 'square'    -%}1/1
+      {%- when 'landscape' -%}16/9
+      {%- when 'tall'      -%}3/4
+      {%- else -%}4/5
+    {%- endcase %};
+    {%- if section.settings.background != 'none' -%}
+      background: {{ section.settings.background }};
+    {%- endif -%}
+  }
+{% endstyle %}
+
+{{
+  'section-image-with-text.css'
+  | asset_url
+  | stylesheet_tag: preload: true, media: 'print', onload: "this.media='all'"
+}}
+
+{%- liquid
+  assign layout      = section.settings.layout | default: 'image_left'
+  assign wide        = section.settings.wide_image
+  assign glass_card  = section.settings.glass_content_card
+  assign content_align = section.settings.content_alignment | default: 'left'
+
+  # Pull media blocks for rendering
+  assign image_block     = nil
+  assign image2_block    = nil
+  assign stat_badge_block = nil
+  for block in section.blocks
+    case block.type
+      when 'image'
+        assign image_block = block
+      when 'image_secondary'
+        assign image2_block = block
+      when 'stat_badge'
+        assign stat_badge_block = block
+    endcase
+  endfor
+-%}
+
+<div class="image-with-text" data-section-id="{{ section.id }}">
+  <div
+    class="image-with-text__grid image-with-text__grid--{{ layout }}{% if wide %} image-with-text__grid--wide{% endif %}"
+  >
+
+    {%- comment -%} ══════════════ MEDIA COLUMN ══════════════════════ {%- endcomment -%}
+    <div class="image-with-text__media animate-on-scroll">
+      <div class="image-with-text__media-inner">
+
+        {%- if image_block != blank -%}
+          {%- if image_block.settings.video_url != blank -%}
+            {{
+              image_block.settings.video_url
+              | video_tag:
+                autoplay: true,
+                loop: true,
+                muted: true,
+                playsinline: true,
+                class: 'image-with-text__img',
+                poster: image_block.settings.image | image_url: width: 1000
+            }}
+          {%- elsif image_block.settings.image != blank -%}
+            {%- assign iwt_img = image_block.settings.image -%}
+            <img
+              src="{{ iwt_img | image_url: width: 900 }}"
+              srcset="
+                {{ iwt_img | image_url: width: 450 }} 450w,
+                {{ iwt_img | image_url: width: 700 }} 700w,
+                {{ iwt_img | image_url: width: 900 }} 900w,
+                {{ iwt_img | image_url: width: 1200 }} 1200w
+              "
+              sizes="(max-width: 900px) 100vw, 50vw"
+              alt="{{ image_block.settings.image_alt | default: iwt_img.alt | escape }}"
+              class="image-with-text__img"
+              width="{{ iwt_img.width }}"
+              height="{{ iwt_img.height }}"
+              loading="lazy"
+              decoding="async"
+              {{ image_block.shopify_attributes }}
+            >
+          {%- else -%}
+            {{ 'lifestyle-1' | placeholder_svg_tag: 'image-with-text__img' }}
+          {%- endif -%}
+        {%- else -%}
+          {{ 'lifestyle-2' | placeholder_svg_tag: 'image-with-text__img' }}
+        {%- endif -%}
+
+        {%- if section.settings.show_overlay -%}
+          <div class="image-with-text__media-overlay" aria-hidden="true"></div>
+        {%- endif -%}
+      </div>
+
+      {%- comment -%} Floating stat badge on image ──────────────────── {%- endcomment -%}
+      {%- if stat_badge_block != blank -%}
+        <div
+          class="image-with-text__stat-badge image-with-text__stat-badge--{{ stat_badge_block.settings.position | default: 'bottom-right' }}"
+          {{ stat_badge_block.shopify_attributes }}
+        >
+          <span class="image-with-text__stat-number">{{ stat_badge_block.settings.number | escape }}</span>
+          <span class="image-with-text__stat-label">{{ stat_badge_block.settings.label | escape }}</span>
+        </div>
+      {%- endif -%}
+
+      {%- comment -%} Stacked secondary image ──────────────────────── {%- endcomment -%}
+      {%- if image2_block != blank and image2_block.settings.image != blank -%}
+        <div class="image-with-text__media-secondary" {{ image2_block.shopify_attributes }}>
+          <img
+            src="{{ image2_block.settings.image | image_url: width: 400 }}"
+            srcset="{{ image2_block.settings.image | image_url: width: 200 }} 200w, {{ image2_block.settings.image | image_url: width: 400 }} 400w"
+            sizes="200px"
+            alt="{{ image2_block.settings.image.alt | escape }}"
+            loading="lazy"
+            decoding="async"
+          >
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} ══════════════ CONTENT COLUMN ════════════════════ {%- endcomment -%}
+    <div
+      class="image-with-text__content image-with-text__content--{{ content_align }}{% if glass_card %} image-with-text__content--glass{% endif %} animate-on-scroll stagger-children"
+    >
+
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+
+          {%- when 'eyebrow' -%}
+            {%- if block.settings.text != blank -%}
+              <span class="image-with-text__eyebrow" {{ block.shopify_attributes }}>
+                {{- block.settings.text | escape -}}
+              </span>
+            {%- endif -%}
+
+          {%- when 'heading' -%}
+            {%- if block.settings.heading != blank -%}
+              <{{ block.settings.heading_tag | default: 'h2' }}
+                class="image-with-text__heading"
+                {{ block.shopify_attributes }}
+              >
+                {{- block.settings.heading -}}
+              </{{ block.settings.heading_tag | default: 'h2' }}>
+            {%- endif -%}
+
+          {%- when 'text' -%}
+            {%- if block.settings.text != blank -%}
+              <div class="image-with-text__body" {{ block.shopify_attributes }}>
+                {{- block.settings.text -}}
+              </div>
+            {%- endif -%}
+
+          {%- when 'feature_item' -%}
+            {%- if block.settings.title != blank or block.settings.text != blank -%}
+              {%- unless forloop.first or section.blocks[forloop.index0 | minus: 1].type == 'feature_item' -%}
+                <div class="image-with-text__features" role="list">
+              {%- endunless -%}
+                <div class="image-with-text__feature" role="listitem" {{ block.shopify_attributes }}>
+                  <div class="image-with-text__feature-icon" aria-hidden="true">
+                    {%- case block.settings.icon -%}
+                      {%- when 'leaf' -%}
+                        <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 008 20C19 20 22 3 22 3c-1 2-8 2-5 8"/></svg>
+                      {%- when 'star' -%}
+                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      {%- when 'shield' -%}
+                        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                      {%- when 'heart' -%}
+                        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                      {%- when 'drop' -%}
+                        <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>
+                      {%- when 'sun' -%}
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                      {%- else -%}
+                        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    {%- endcase -%}
+                  </div>
+                  <div>
+                    {%- if block.settings.title != blank -%}
+                      <p class="image-with-text__feature-title">{{ block.settings.title | escape }}</p>
+                    {%- endif -%}
+                    {%- if block.settings.text != blank -%}
+                      <p class="image-with-text__feature-text">{{ block.settings.text | escape }}</p>
+                    {%- endif -%}
+                  </div>
+                </div>
+              {%- unless section.blocks[forloop.index0 | plus: 1].type == 'feature_item' -%}
+                </div>
+              {%- endunless -%}
+            {%- endif -%}
+
+          {%- when 'stats' -%}
+            <div class="image-with-text__stats" {{ block.shopify_attributes }}>
+              {%- for i in (1..4) -%}
+                {%- assign val_key  = 'stat_' | append: i | append: '_value' -%}
+                {%- assign desc_key = 'stat_' | append: i | append: '_label' -%}
+                {%- if block.settings[val_key] != blank -%}
+                  <div class="image-with-text__stat">
+                    <div class="image-with-text__stat-val" data-count-to="{{ block.settings[val_key] | escape }}">
+                      {{ block.settings[val_key] | escape }}
+                    </div>
+                    <div class="image-with-text__stat-desc">{{ block.settings[desc_key] | escape }}</div>
+                  </div>
+                {%- endif -%}
+              {%- endfor -%}
+            </div>
+
+          {%- when 'buttons' -%}
+            <div class="image-with-text__cta-group" {{ block.shopify_attributes }}>
+              {%- if block.settings.button_1_label != blank -%}
+                <a
+                  href="{{ block.settings.button_1_url | default: '#' }}"
+                  class="btn btn--primary{% if block.settings.button_1_large %} btn--lg{% endif %}"
+                  {% if block.settings.button_1_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
+                >
+                  {{- block.settings.button_1_label | escape -}}
+                </a>
+              {%- endif -%}
+              {%- if block.settings.button_2_label != blank -%}
+                <a
+                  href="{{ block.settings.button_2_url | default: '#' }}"
+                  class="btn btn--glass{% if block.settings.button_2_large %} btn--lg{% endif %}"
+                  {% if block.settings.button_2_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
+                >
+                  {{- block.settings.button_2_label | escape -}}
+                </a>
+              {%- endif -%}
+            </div>
+
+          {%- when 'spacer' -%}
+            <div style="height:{{ block.settings.height | default: 16 }}px;" aria-hidden="true" {{ block.shopify_attributes }}></div>
+
+        {%- endcase -%}
+      {%- endfor -%}
+
+    </div>{%- comment -%} .image-with-text__content {%- endcomment -%}
+  </div>{%- comment -%} .image-with-text__grid {%- endcomment -%}
+</div>
+
+{% schema %}
+{
+  "name": "Image with text",
+  "tag": "section",
+  "class": "section-image-with-text",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Image position",
+      "default": "image_left",
+      "options": [
+        { "value": "image_left",  "label": "Image left" },
+        { "value": "image_right", "label": "Image right" }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "wide_image",
+      "label": "Wide image column (60/40 split)",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "label": "Content alignment",
+      "default": "left",
+      "options": [
+        { "value": "left",   "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right",  "label": "Right" }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "glass_content_card",
+      "label": "Glass card on content",
+      "default": false,
+      "info": "Wraps the content in a glassmorphism panel"
+    },
+    {
+      "type": "select",
+      "id": "media_ratio",
+      "label": "Media aspect ratio",
+      "default": "portrait",
+      "options": [
+        { "value": "square",    "label": "Square (1:1)" },
+        { "value": "portrait",  "label": "Portrait (4:5)" },
+        { "value": "tall",      "label": "Tall (3:4)" },
+        { "value": "landscape", "label": "Landscape (16:9)" }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_overlay",
+      "label": "Show gradient overlay on image",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "background",
+      "label": "Background",
+      "default": "none",
+      "options": [
+        { "value": "none",                      "label": "Default" },
+        { "value": "var(--color-bg-secondary)", "label": "Secondary" },
+        { "value": "rgba(201,169,110,0.04)",    "label": "Warm tint" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0, "max": 160, "step": 8, "unit": "px", "default": 80
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0, "max": 160, "step": 8, "unit": "px", "default": 80
+    }
+  ],
+  "blocks": [
+    {
+      "type": "image",
+      "name": "Image / Video",
+      "limit": 1,
+      "settings": [
+        { "type": "image_picker", "id": "image",      "label": "Image" },
+        { "type": "text",         "id": "image_alt",  "label": "Alt text (overrides image alt)" },
+        { "type": "video_url",    "id": "video_url",  "label": "Video URL (overrides image)", "accept": ["youtube","vimeo"] }
+      ]
+    },
+    {
+      "type": "image_secondary",
+      "name": "Accent image (overlapping)",
+      "limit": 1,
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" }
+      ]
+    },
+    {
+      "type": "stat_badge",
+      "name": "Floating stat badge",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "number", "label": "Number / value", "default": "10K+" },
+        { "type": "text", "id": "label",  "label": "Label",          "default": "Happy Customers" },
+        {
+          "type": "select",
+          "id": "position",
+          "label": "Position on image",
+          "default": "bottom-right",
+          "options": [
+            { "value": "bottom-right", "label": "Bottom right" },
+            { "value": "bottom-left",  "label": "Bottom left" },
+            { "value": "top-right",    "label": "Top right" },
+            { "value": "top-left",     "label": "Top left" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "eyebrow",
+      "name": "Eyebrow label",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "text", "label": "Text", "default": "Our Promise" }
+      ]
+    },
+    {
+      "type": "heading",
+      "name": "Heading",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "heading",
+          "label": "Heading",
+          "default": "<p>Beauty Rooted in <em>Science</em></p>"
+        },
+        {
+          "type": "select",
+          "id": "heading_tag",
+          "label": "Heading tag",
+          "default": "h2",
+          "options": [
+            { "value": "h2", "label": "H2" },
+            { "value": "h3", "label": "H3" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "Text",
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "Text",
+          "default": "<p>Every formula we create is backed by dermatological research and crafted with the finest sustainably sourced botanicals. Your skin deserves nothing less.</p>"
+        }
+      ]
+    },
+    {
+      "type": "feature_item",
+      "name": "Feature item",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "default": "leaf",
+          "options": [
+            { "value": "leaf",   "label": "Leaf" },
+            { "value": "star",   "label": "Star" },
+            { "value": "shield", "label": "Shield" },
+            { "value": "heart",  "label": "Heart" },
+            { "value": "drop",   "label": "Drop" },
+            { "value": "sun",    "label": "Sun" },
+            { "value": "check",  "label": "Checkmark" }
+          ]
+        },
+        { "type": "text", "id": "title", "label": "Title", "default": "Clean Ingredients" },
+        { "type": "text", "id": "text",  "label": "Text",  "default": "Free from parabens, sulphates, and artificial fragrances." }
+      ]
+    },
+    {
+      "type": "stats",
+      "name": "Stat counters",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "stat_1_value", "label": "Stat 1 value", "default": "10K+" },
+        { "type": "text", "id": "stat_1_label", "label": "Stat 1 label", "default": "5-star reviews" },
+        { "type": "text", "id": "stat_2_value", "label": "Stat 2 value", "default": "98%" },
+        { "type": "text", "id": "stat_2_label", "label": "Stat 2 label", "default": "Would repurchase" },
+        { "type": "text", "id": "stat_3_value", "label": "Stat 3 value", "default": "45+" },
+        { "type": "text", "id": "stat_3_label", "label": "Stat 3 label", "default": "Active botanicals" },
+        { "type": "text", "id": "stat_4_value", "label": "Stat 4 value" },
+        { "type": "text", "id": "stat_4_label", "label": "Stat 4 label" }
+      ]
+    },
+    {
+      "type": "buttons",
+      "name": "Buttons",
+      "limit": 1,
+      "settings": [
+        { "type": "text",    "id": "button_1_label",   "label": "Button 1 label",   "default": "Shop the Range" },
+        { "type": "url",     "id": "button_1_url",     "label": "Button 1 link" },
+        { "type": "checkbox","id": "button_1_large",   "label": "Large size",        "default": false },
+        { "type": "checkbox","id": "button_1_new_tab", "label": "Open in new tab",   "default": false },
+        { "type": "text",    "id": "button_2_label",   "label": "Button 2 label",   "default": "Learn More" },
+        { "type": "url",     "id": "button_2_url",     "label": "Button 2 link" },
+        { "type": "checkbox","id": "button_2_large",   "label": "Large size",        "default": false },
+        { "type": "checkbox","id": "button_2_new_tab", "label": "Open in new tab",   "default": false }
+      ]
+    },
+    {
+      "type": "spacer",
+      "name": "Spacer",
+      "settings": [
+        { "type": "range", "id": "height", "label": "Height", "min": 4, "max": 80, "step": 4, "unit": "px", "default": 16 }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Image with text — Standard",
+      "blocks": [
+        { "type": "image",   "settings": {} },
+        { "type": "stat_badge", "settings": { "number": "10K+", "label": "Happy Customers" } },
+        { "type": "eyebrow", "settings": { "text": "Our Promise" } },
+        { "type": "heading", "settings": { "heading": "<p>Beauty Rooted in <em>Science</em></p>" } },
+        { "type": "text",    "settings": { "text": "<p>Every formula we create is backed by dermatological research and crafted with the finest sustainably sourced botanicals.</p>" } },
+        { "type": "feature_item", "settings": { "icon": "leaf",   "title": "Clean Ingredients",    "text": "Free from parabens, sulphates, and artificial fragrances." } },
+        { "type": "feature_item", "settings": { "icon": "shield", "title": "Dermatologist Tested", "text": "Every product approved by leading skin science professionals." } },
+        { "type": "feature_item", "settings": { "icon": "heart",  "title": "Cruelty-Free",         "text": "100% vegan, Leaping Bunny certified, sustainable packaging." } },
+        { "type": "buttons", "settings": { "button_1_label": "Shop the Range", "button_2_label": "Our Story" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

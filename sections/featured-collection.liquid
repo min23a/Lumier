@@ -1,0 +1,523 @@
+{%- comment -%}
+  sections/featured-collection.liquid — Lumière Beauty Theme
+  Showcases a collection as a horizontal scroll carousel with:
+    • Eyebrow / heading / subtitle / view-all link  (block: heading)
+    • Optional category tab pills                   (block: tabs)
+    • Scroll-snap carousel with prev/next arrows    (block: collection_grid)
+    • Dot pagination
+    • Quick-add inherited from product card pattern
+    • Optional promotional card slot                (block: promo_card)
+    • Full OS 2.0 blocks architecture
+{%- endcomment -%}
+
+{% style %}
+  #shopify-section-{{ section.id }} .featured-collection {
+    padding-top:    {{ section.settings.padding_top    | default: 64 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | default: 64 }}px;
+    --visible-cards: {{ section.settings.columns | default: 4 }};
+    --fc-card-ratio: {% case section.settings.image_ratio %}
+      {%- when 'portrait'  -%}3/4
+      {%- when 'landscape' -%}4/3
+      {%- else -%}1/1{% endcase %};
+  }
+  {%- if section.settings.background_color != 'none' -%}
+    #shopify-section-{{ section.id }} .featured-collection {
+      background: {{ section.settings.background_color }};
+    }
+  {%- endif -%}
+{% endstyle %}
+
+{{
+  'section-featured-collection.css'
+  | asset_url
+  | stylesheet_tag: preload: true, media: 'print', onload: "this.media='all'"
+}}
+
+{%- liquid
+  assign collection_obj = collections[section.settings.collection]
+  assign products_to_show = section.settings.products_to_show | default: 8
+  assign show_quick_add   = section.settings.show_quick_add
+  assign show_vendor      = section.settings.show_vendor
+  assign show_rating      = section.settings.show_rating
+  assign show_secondary   = section.settings.show_secondary_image
+-%}
+
+<div
+  class="featured-collection section-padding"
+  data-section-id="{{ section.id }}"
+  data-fc-section
+>
+  <div class="container">
+
+    {%- for block in section.blocks -%}
+      {%- case block.type -%}
+
+        {%- comment -%} ── Heading block ──────────────────────────── {%- endcomment -%}
+        {%- when 'heading' -%}
+          <div class="featured-collection__header animate-on-scroll" {{ block.shopify_attributes }}>
+            <div class="featured-collection__heading-group">
+              {%- if block.settings.eyebrow != blank -%}
+                <span class="featured-collection__eyebrow">{{ block.settings.eyebrow | escape }}</span>
+              {%- endif -%}
+              {%- if block.settings.title != blank -%}
+                <h2 class="featured-collection__title">{{ block.settings.title }}</h2>
+              {%- endif -%}
+              {%- if block.settings.subtitle != blank -%}
+                <p class="featured-collection__subtitle">{{ block.settings.subtitle | escape }}</p>
+              {%- endif -%}
+            </div>
+            {%- if block.settings.show_view_all and collection_obj != blank -%}
+              <a href="{{ collection_obj.url }}" class="featured-collection__view-all">
+                {{ block.settings.view_all_label | default: 'View All' | t | escape }}
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </a>
+            {%- endif -%}
+          </div>
+
+        {%- comment -%} ── Tab pills block ─────────────────────────── {%- endcomment -%}
+        {%- when 'tabs' -%}
+          {%- if block.settings.tab_1_label != blank -%}
+            <div class="featured-collection__tabs animate-on-scroll" {{ block.shopify_attributes }}>
+              {%- for i in (1..6) -%}
+                {%- assign label_key = 'tab_' | append: i | append: '_label' -%}
+                {%- assign url_key   = 'tab_' | append: i | append: '_collection' -%}
+                {%- if block.settings[label_key] != blank -%}
+                  {%- assign tab_col = collections[block.settings[url_key]] -%}
+                  <a
+                    href="{{ tab_col.url | default: '#' }}"
+                    class="featured-collection__tab{% if forloop.first %} is-active{% endif %}"
+                    data-fc-tab="{{ block.settings[url_key] }}"
+                  >
+                    {{- block.settings[label_key] | escape -}}
+                  </a>
+                {%- endif -%}
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
+
+        {%- comment -%} ── Collection grid / carousel block ────────── {%- endcomment -%}
+        {%- when 'collection_grid' -%}
+          {%- if collection_obj != blank and collection_obj.products.size > 0 -%}
+            <div class="featured-collection__track-wrap" {{ block.shopify_attributes }}>
+
+              {%- comment -%} Prev arrow ─────────────────────────── {%- endcomment -%}
+              <button
+                type="button"
+                class="featured-collection__arrow featured-collection__arrow--prev"
+                data-fc-prev
+                aria-label="{{ 'accessibility.previous' | t }}"
+                disabled
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M10 4L6 8l4 4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+
+              {%- comment -%} Scroll track ───────────────────────── {%- endcomment -%}
+              <div
+                class="featured-collection__track stagger-children"
+                data-fc-track
+                role="list"
+                aria-label="{{ collection_obj.title | escape }}"
+              >
+                {%- for product in collection_obj.products limit: products_to_show -%}
+                  {%- liquid
+                    assign card_img   = product.featured_image
+                    assign card_img2  = product.images[1]
+                    assign on_sale    = false
+                    assign sold_out   = product.available == false
+                    if product.compare_at_price > product.price
+                      assign on_sale = true
+                      assign discount_pct = product.compare_at_price | minus: product.price | times: 100 | divided_by: product.compare_at_price | round
+                    endif
+                  -%}
+                  <div class="product-card" role="listitem" data-product-card>
+
+                    <div class="product-card__media">
+                      <div class="product-card__media-inner">
+                        {%- if card_img != blank -%}
+                          <img
+                            src="{{ card_img | image_url: width: 600 }}"
+                            srcset="
+                              {{ card_img | image_url: width: 300 }} 300w,
+                              {{ card_img | image_url: width: 500 }} 500w,
+                              {{ card_img | image_url: width: 600 }} 600w,
+                              {{ card_img | image_url: width: 800 }} 800w
+                            "
+                            sizes="(max-width: 480px) 90vw, (max-width: 768px) 60vw, 25vw"
+                            alt="{{ card_img.alt | default: product.title | escape }}"
+                            class="product-card__img product-card__img--primary"
+                            width="{{ card_img.width }}"
+                            height="{{ card_img.height }}"
+                            loading="{{ forloop.index | at_most: 4 | map: 'eager' | first | default: 'lazy' }}"
+                            decoding="async"
+                          >
+                          {%- if show_secondary and card_img2 != blank -%}
+                            <img
+                              src="{{ card_img2 | image_url: width: 600 }}"
+                              srcset="{{ card_img2 | image_url: width: 300 }} 300w, {{ card_img2 | image_url: width: 600 }} 600w"
+                              sizes="25vw"
+                              alt="{{ card_img2.alt | default: product.title | escape }}"
+                              class="product-card__img product-card__img--secondary"
+                              loading="lazy"
+                              decoding="async"
+                              aria-hidden="true"
+                            >
+                          {%- endif -%}
+                        {%- else -%}
+                          {{ 'product-1' | placeholder_svg_tag: 'product-card__img product-card__img--primary' }}
+                        {%- endif -%}
+                      </div>
+
+                      <div class="product-card__badges">
+                        {%- if on_sale and sold_out == false -%}
+                          <span class="badge badge--accent">-{{ discount_pct }}%</span>
+                        {%- endif -%}
+                        {%- if sold_out -%}
+                          <span class="badge badge--glass">{{ 'sections.product.sold_out' | t }}</span>
+                        {%- endif -%}
+                      </div>
+
+                      {%- if show_quick_add -%}
+                        <div class="product-card__quick-add" aria-hidden="true">
+                          {%- if product.has_only_default_variant -%}
+                            <button
+                              type="button"
+                              class="product-card__quick-add-btn"
+                              data-quick-add
+                              data-variant-id="{{ product.variants.first.id }}"
+                              {% unless product.available %}disabled{% endunless %}
+                              aria-label="{{ 'sections.product.add_to_cart' | t }} — {{ product.title | escape }}"
+                            >{{ 'sections.product.add_to_cart' | t }}</button>
+                          {%- else -%}
+                            <a href="{{ product.url }}" class="product-card__quick-add-btn">
+                              {{ 'sections.collection.choose_options' | t | default: 'Choose Options' }}
+                            </a>
+                          {%- endif -%}
+                        </div>
+                      {%- endif -%}
+
+                      <button
+                        type="button"
+                        class="product-card__wishlist"
+                        data-wishlist-btn
+                        data-product-id="{{ product.id }}"
+                        aria-label="{{ 'sections.collection.wishlist' | t | default: 'Save' }} {{ product.title | escape }}"
+                      >
+                        <svg viewBox="0 0 16 16" aria-hidden="true">
+                          <path d="M8 13.7S1.5 9.5 1.5 5.5a3.5 3.5 0 017-0 3.5 3.5 0 017 0C15.5 9.5 8 13.7 8 13.7z"/>
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div class="product-card__info">
+                      {%- if show_vendor and product.vendor != blank -%}
+                        <span class="product-card__vendor">{{ product.vendor | escape }}</span>
+                      {%- endif -%}
+                      <a href="{{ product.url }}" class="product-card__title">{{ product.title | escape }}</a>
+                      {%- if show_rating -%}
+                        {%- assign rv = product.metafields.reviews.rating.value -%}
+                        {%- assign rc = product.metafields.reviews.rating_count.value -%}
+                        {%- if rv != blank -%}
+                          <div class="product-card__rating" aria-label="{{ rv }} stars">
+                            {%- for i in (1..5) -%}
+                              <svg class="product-card__rating-star{% if i > rv %} product-card__rating-star--empty{% endif %}" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+                                <path d="M5 0l.97 3h3.15l-2.55 1.85.98 3L5 6.2 2.45 7.85l.98-3L.88 3h3.15z"/>
+                              </svg>
+                            {%- endfor -%}
+                            {%- if rc -%}<span class="product-card__rating-count">({{ rc }})</span>{%- endif -%}
+                          </div>
+                        {%- endif -%}
+                      {%- endif -%}
+                      <div class="product-card__price-row">
+                        <span class="product-card__price{% if on_sale %} product-card__price--sale{% endif %}">
+                          {{ product.price | money }}
+                        </span>
+                        {%- if on_sale -%}
+                          <span class="product-card__compare">{{ product.compare_at_price | money }}</span>
+                        {%- endif -%}
+                      </div>
+                    </div>
+
+                  </div>{%- comment -%} .product-card {%- endcomment -%}
+                {%- endfor -%}
+
+                {%- comment -%} ── Promo card slot (injected by promo_card block) ── {%- endcomment -%}
+                {%- for inner_block in section.blocks -%}
+                  {%- if inner_block.type == 'promo_card' -%}
+                    <div class="product-card product-card--promo" role="listitem" {{ inner_block.shopify_attributes }}
+                      style="position:relative;overflow:hidden;border-radius:var(--radius-lg);display:flex;flex-direction:column;justify-content:flex-end;min-height:280px;">
+                      {%- if inner_block.settings.image != blank -%}
+                        <img
+                          src="{{ inner_block.settings.image | image_url: width: 600 }}"
+                          alt="{{ inner_block.settings.image.alt | escape }}"
+                          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
+                          loading="lazy" decoding="async"
+                        >
+                      {%- endif -%}
+                      <div style="position:relative;z-index:1;padding:1.5rem;background:linear-gradient(to top,rgba(0,0,0,0.70),transparent);">
+                        {%- if inner_block.settings.eyebrow != blank -%}
+                          <p style="font-size:0.65rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--color-accent);margin-bottom:4px;">
+                            {{ inner_block.settings.eyebrow | escape }}
+                          </p>
+                        {%- endif -%}
+                        {%- if inner_block.settings.title != blank -%}
+                          <p style="font-family:var(--font-heading);font-size:1.25rem;color:#fff;letter-spacing:-0.02em;line-height:1.2;margin-bottom:var(--spacing-md);">
+                            {{ inner_block.settings.title }}
+                          </p>
+                        {%- endif -%}
+                        {%- if inner_block.settings.button_label != blank -%}
+                          <a href="{{ inner_block.settings.button_url | default: '#' }}" class="btn btn--glass btn--sm">
+                            {{ inner_block.settings.button_label | escape }}
+                          </a>
+                        {%- endif -%}
+                      </div>
+                    </div>
+                  {%- endif -%}
+                {%- endfor -%}
+
+              </div>{%- comment -%} .featured-collection__track {%- endcomment -%}
+
+              {%- comment -%} Next arrow ─────────────────────────── {%- endcomment -%}
+              <button
+                type="button"
+                class="featured-collection__arrow featured-collection__arrow--next"
+                data-fc-next
+                aria-label="{{ 'accessibility.next' | t }}"
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M6 4l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+
+            {%- comment -%} Dot pagination ─────────────────────────── {%- endcomment -%}
+            {%- assign dot_count = collection_obj.products.size | at_most: products_to_show -%}
+            {%- if dot_count > section.settings.columns -%}
+              <div class="featured-collection__dots" data-fc-dots aria-hidden="true">
+                {%- for i in (1..dot_count) -%}
+                  <button
+                    type="button"
+                    class="featured-collection__dot{% if forloop.first %} is-active{% endif %}"
+                    data-fc-dot="{{ forloop.index0 }}"
+                  ></button>
+                {%- endfor -%}
+              </div>
+            {%- endif -%}
+          {%- else -%}
+            {%- comment -%} Empty / no collection selected ──────────── {%- endcomment -%}
+            <div style="text-align:center;padding:3rem;color:var(--color-text-subtle);font-size:0.9rem;">
+              {{ 'sections.featured_collection.no_collection' | t | default: 'Select a collection in section settings.' }}
+            </div>
+          {%- endif -%}
+
+        {%- comment -%} ── Spacer ──────────────────────────────────── {%- endcomment -%}
+        {%- when 'spacer' -%}
+          <div style="height:{{ block.settings.height | default: 24 }}px;" aria-hidden="true" {{ block.shopify_attributes }}></div>
+
+      {%- endcase -%}
+    {%- endfor -%}
+
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const section = document.querySelector('[data-section-id="{{ section.id }}"]');
+  if (!section) return;
+
+  const track   = section.querySelector('[data-fc-track]');
+  const prev    = section.querySelector('[data-fc-prev]');
+  const next    = section.querySelector('[data-fc-next]');
+  const dots    = section.querySelectorAll('[data-fc-dot]');
+  if (!track) return;
+
+  const getCardWidth = () => {
+    const first = track.firstElementChild;
+    if (!first) return 0;
+    return first.offsetWidth + parseInt(getComputedStyle(track).gap, 10);
+  };
+
+  const scrollBy = (dir) => {
+    track.scrollBy({ left: dir * getCardWidth(), behavior: 'smooth' });
+  };
+
+  const updateControls = () => {
+    const max = track.scrollWidth - track.clientWidth;
+    if (prev) prev.disabled = track.scrollLeft <= 2;
+    if (next) next.disabled = track.scrollLeft >= max - 2;
+    // Update dots based on visible card index
+    if (dots.length) {
+      const idx = Math.round(track.scrollLeft / (getCardWidth() || 1));
+      dots.forEach((d, i) => d.classList.toggle('is-active', i === idx));
+    }
+  };
+
+  prev?.addEventListener('click', () => scrollBy(-1));
+  next?.addEventListener('click', () => scrollBy(1));
+  dots.forEach((dot) => {
+    dot.addEventListener('click', () => {
+      track.scrollTo({ left: parseInt(dot.dataset.fcDot, 10) * getCardWidth(), behavior: 'smooth' });
+    });
+  });
+
+  track.addEventListener('scroll', window.Lumiere?.throttle?.(updateControls, 80) || updateControls, { passive: true });
+  window.addEventListener('resize', window.Lumiere?.debounce?.(updateControls, 200) || updateControls);
+  updateControls();
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Featured Collection",
+  "tag": "section",
+  "class": "section-featured-collection",
+  "settings": [
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection"
+    },
+    {
+      "type": "range",
+      "id": "products_to_show",
+      "label": "Products to show",
+      "min": 4, "max": 16, "step": 2, "default": 8
+    },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "Columns (desktop)",
+      "min": 2, "max": 5, "step": 1, "default": 4
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Image ratio",
+      "default": "portrait",
+      "options": [
+        { "value": "square",    "label": "Square (1:1)" },
+        { "value": "portrait",  "label": "Portrait (3:4)" },
+        { "value": "landscape", "label": "Landscape (4:3)" }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_secondary_image",
+      "label": "Hover image swap",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quick_add",
+      "label": "Quick add to cart",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "label": "Show vendor",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "label": "Show star rating",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "background_color",
+      "label": "Background",
+      "default": "none",
+      "options": [
+        { "value": "none",                      "label": "Default" },
+        { "value": "var(--color-bg-secondary)", "label": "Secondary" },
+        { "value": "rgba(201,169,110,0.04)",    "label": "Warm tint" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0, "max": 120, "step": 8, "unit": "px", "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0, "max": 120, "step": 8, "unit": "px", "default": 64
+    }
+  ],
+  "blocks": [
+    {
+      "type": "heading",
+      "name": "Heading",
+      "limit": 1,
+      "settings": [
+        { "type": "text",     "id": "eyebrow",       "label": "Eyebrow",   "default": "Bestsellers" },
+        { "type": "richtext", "id": "title",          "label": "Title",     "default": "<p>Our Most <em>Loved</em></p>" },
+        { "type": "text",     "id": "subtitle",       "label": "Subtitle" },
+        { "type": "checkbox", "id": "show_view_all",  "label": "Show View All link", "default": true },
+        { "type": "text",     "id": "view_all_label", "label": "View All label", "default": "View All" }
+      ]
+    },
+    {
+      "type": "tabs",
+      "name": "Category tabs",
+      "limit": 1,
+      "settings": [
+        { "type": "text",       "id": "tab_1_label",      "label": "Tab 1 label",      "default": "All" },
+        { "type": "collection", "id": "tab_1_collection", "label": "Tab 1 collection" },
+        { "type": "text",       "id": "tab_2_label",      "label": "Tab 2 label",      "default": "Skincare" },
+        { "type": "collection", "id": "tab_2_collection", "label": "Tab 2 collection" },
+        { "type": "text",       "id": "tab_3_label",      "label": "Tab 3 label" },
+        { "type": "collection", "id": "tab_3_collection", "label": "Tab 3 collection" },
+        { "type": "text",       "id": "tab_4_label",      "label": "Tab 4 label" },
+        { "type": "collection", "id": "tab_4_collection", "label": "Tab 4 collection" },
+        { "type": "text",       "id": "tab_5_label",      "label": "Tab 5 label" },
+        { "type": "collection", "id": "tab_5_collection", "label": "Tab 5 collection" },
+        { "type": "text",       "id": "tab_6_label",      "label": "Tab 6 label" },
+        { "type": "collection", "id": "tab_6_collection", "label": "Tab 6 collection" }
+      ]
+    },
+    {
+      "type": "collection_grid",
+      "name": "Product carousel",
+      "limit": 1,
+      "settings": []
+    },
+    {
+      "type": "promo_card",
+      "name": "Promo card",
+      "limit": 1,
+      "settings": [
+        { "type": "image_picker", "id": "image",        "label": "Image" },
+        { "type": "text",         "id": "eyebrow",      "label": "Eyebrow",       "default": "Limited Edition" },
+        { "type": "richtext",     "id": "title",        "label": "Title",         "default": "<p>New <em>Ritual</em> Set</p>" },
+        { "type": "text",         "id": "button_label", "label": "Button label",  "default": "Shop Now" },
+        { "type": "url",          "id": "button_url",   "label": "Button link" }
+      ]
+    },
+    {
+      "type": "spacer",
+      "name": "Spacer",
+      "settings": [
+        { "type": "range", "id": "height", "label": "Height", "min": 8, "max": 80, "step": 4, "unit": "px", "default": 24 }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Featured Collection",
+      "blocks": [
+        { "type": "heading", "settings": { "eyebrow": "Bestsellers", "title": "<p>Our Most <em>Loved</em></p>", "show_view_all": true } },
+        { "type": "collection_grid" }
+      ]
+    }
+  ]
+}
+{% endschema %}
