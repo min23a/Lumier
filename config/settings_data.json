@@ -1,0 +1,94 @@
+{
+  "current": {
+    "color_background":             "#0d0d0f",
+    "color_background_secondary":   "#17171b",
+    "color_text":                   "#f0ede8",
+    "color_text_subtle":            "#9c9890",
+    "color_accent":                 "#c9a96e",
+    "color_accent_hover":           "#b8916a",
+    "color_border":                 "#2a2a30",
+    "color_button_primary_bg":      "#c9a96e",
+    "color_button_primary_text":    "#0d0d0f",
+
+    "heading_font":                 "cormorant_garamond_n4",
+    "heading_scale":                100,
+    "body_font":                    "jost_n4",
+    "body_scale":                   100,
+
+    "text_direction":               "ltr",
+    "enable_animations":            true,
+    "page_width":                   1440,
+
+    "glass_blur":                   16,
+    "glass_opacity":                8,
+
+    "cart_type":                    "drawer",
+    "cart_free_shipping_bar":       true,
+    "cart_free_shipping_threshold": 75,
+
+    "predictive_search_enabled":    true,
+    "predictive_search_resources":  "products,collections"
+  },
+  "presets": {
+    "Default — Dark Gold": {
+      "color_background":             "#0d0d0f",
+      "color_background_secondary":   "#17171b",
+      "color_text":                   "#f0ede8",
+      "color_text_subtle":            "#9c9890",
+      "color_accent":                 "#c9a96e",
+      "color_accent_hover":           "#b8916a",
+      "color_border":                 "#2a2a30",
+      "color_button_primary_bg":      "#c9a96e",
+      "color_button_primary_text":    "#0d0d0f",
+      "heading_font":                 "cormorant_garamond_n4",
+      "body_font":                    "jost_n4",
+      "glass_blur":                   16,
+      "glass_opacity":                8
+    },
+    "Light Rose": {
+      "color_background":             "#fdf8f5",
+      "color_background_secondary":   "#f5ede8",
+      "color_text":                   "#1a1310",
+      "color_text_subtle":            "#7a6860",
+      "color_accent":                 "#c4636a",
+      "color_accent_hover":           "#a84d54",
+      "color_border":                 "#e8dbd5",
+      "color_button_primary_bg":      "#c4636a",
+      "color_button_primary_text":    "#ffffff",
+      "heading_font":                 "playfair_display_n4",
+      "body_font":                    "raleway_n4",
+      "glass_blur":                   12,
+      "glass_opacity":                12
+    },
+    "Midnight Sage": {
+      "color_background":             "#0f1410",
+      "color_background_secondary":   "#161d17",
+      "color_text":                   "#e8f0e8",
+      "color_text_subtle":            "#8a9e8a",
+      "color_accent":                 "#7cb87c",
+      "color_accent_hover":           "#6aa96a",
+      "color_border":                 "#243024",
+      "color_button_primary_bg":      "#7cb87c",
+      "color_button_primary_text":    "#0f1410",
+      "heading_font":                 "cormorant_garamond_n4",
+      "body_font":                    "dm_sans_n4",
+      "glass_blur":                   20,
+      "glass_opacity":                6
+    },
+    "Ivory Pearl": {
+      "color_background":             "#f9f7f4",
+      "color_background_secondary":   "#f2ede8",
+      "color_text":                   "#1c1814",
+      "color_text_subtle":            "#7a7470",
+      "color_accent":                 "#9b8b7a",
+      "color_accent_hover":           "#857565",
+      "color_border":                 "#e0d8d0",
+      "color_button_primary_bg":      "#1c1814",
+      "color_button_primary_text":    "#f9f7f4",
+      "heading_font":                 "libre_baskerville_n4",
+      "body_font":                    "lato_n4",
+      "glass_blur":                   10,
+      "glass_opacity":                15
+    }
+  }
+}

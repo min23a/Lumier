@@ -28,20 +28,49 @@
     {% render 'meta-tags' %}
 
     <link rel="canonical" href="{{ canonical_url }}">
+
+    {%- comment -%} ── Resource hints ─ prioritise CDN connections ── {%- endcomment -%}
     <link rel="preconnect" href="https://cdn.shopify.com" crossorigin>
     <link rel="preconnect" href="https://fonts.shopifycdn.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.shopify.com">
+    <link rel="dns-prefetch" href="https://monorail-edge.shopifysvc.com">
+    {%- if settings.predictive_search_enabled -%}
+      <link rel="dns-prefetch" href="https://productreviews.shopifycdn.com">
+    {%- endif -%}
 
+    {%- comment -%} ── Font preloads — prevent FOIT/layout shift ──── {%- endcomment -%}
     {%- unless settings.heading_font.system? -%}
-      <link rel="preload" as="font" href="{{ settings.heading_font | font_url }}" type="font/woff2" crossorigin>
+      <link
+        rel="preload"
+        as="font"
+        href="{{ settings.heading_font | font_url }}"
+        type="font/woff2"
+        crossorigin="anonymous"
+        fetchpriority="high"
+      >
     {%- endunless -%}
     {%- unless settings.body_font.system? -%}
-      <link rel="preload" as="font" href="{{ settings.body_font | font_url }}" type="font/woff2" crossorigin>
+      <link
+        rel="preload"
+        as="font"
+        href="{{ settings.body_font | font_url }}"
+        type="font/woff2"
+        crossorigin="anonymous"
+      >
     {%- endunless -%}
 
     {%- comment -%} ============================================================
-      CRITICAL CSS — inlined to prevent render-blocking
+      CRITICAL CSS — inlined to prevent render-blocking.
+      Tokens drive every component; no values are hardcoded in sections.
     ================================================================ {%- endcomment -%}
     <style>
+      /* ── Font faces (swap to prevent FOIT) ─────────────────── */
+      {{ settings.heading_font | font_face: font_display: 'swap' }}
+      {{ settings.body_font    | font_face: font_display: 'swap' }}
+      {%- if settings.heading_font.bold -%}
+        {{ settings.heading_font | font_modify: 'weight', 'bold' | font_face: font_display: 'swap' }}
+      {%- endif -%}
+
       /* ── Design Tokens ─────────────────────────────────────── */
       :root {
         /* Palette */
@@ -53,12 +82,12 @@
         --color-accent-hover:     {{ settings.color_accent_hover }};
         --color-border:           {{ settings.color_border }};
 
-        /* Glassmorphism */
-        --glass-bg:               rgba(255,255,255,0.08);
-        --glass-bg-hover:         rgba(255,255,255,0.14);
+        /* Glassmorphism — merchant-adjustable via Customizer */
+        --glass-bg:               rgba(255,255,255,{{ settings.glass_opacity | default: 8 | divided_by: 100.0 }});
+        --glass-bg-hover:         rgba(255,255,255,{{ settings.glass_opacity | default: 8 | plus: 6 | divided_by: 100.0 }});
         --glass-border:           rgba(255,255,255,0.18);
-        --glass-blur:             16px;
-        --glass-blur-heavy:       32px;
+        --glass-blur:             {{ settings.glass_blur | default: 16 }}px;
+        --glass-blur-heavy:       {{ settings.glass_blur | default: 16 | times: 2 }}px;
         --glass-shadow:           0 8px 32px rgba(0,0,0,0.18);
 
         /* Typography */
@@ -68,8 +97,10 @@
         --font-body-style:        {{ settings.body_font.style }};
         --font-heading-weight:    {{ settings.heading_font.weight }};
         --font-heading-style:     {{ settings.heading_font.style }};
+        --font-heading-scale:     {{ settings.heading_scale | default: 100 }}%;
+        --font-body-scale:        {{ settings.body_scale    | default: 100 }}%;
 
-        /* Scale */
+        /* Spacing scale */
         --spacing-xs:    0.25rem;
         --spacing-sm:    0.5rem;
         --spacing-md:    1rem;
@@ -78,7 +109,7 @@
         --spacing-2xl:   4rem;
         --spacing-3xl:   6rem;
 
-        /* Radii */
+        /* Border radii */
         --radius-sm:     6px;
         --radius-md:     12px;
         --radius-lg:     20px;
@@ -98,11 +129,11 @@
         --z-toast:   300;
         --z-header:  400;
 
-        /* Container */
-        --container-max:   1440px;
+        /* Container — merchant-controlled page width */
+        --container-max:    {{ settings.page_width | default: 1440 }}px;
         --container-gutter: clamp(1rem, 4vw, 2.5rem);
 
-        /* Header height (used for scroll offset) */
+        /* Header height (synced with section setting) */
         --header-height: 72px;
       }
 
@@ -110,10 +141,11 @@
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
       html {
-        font-size: 16px;
+        font-size: calc(1rem * {{ settings.body_scale | default: 100 }} / 100);
         scroll-behavior: smooth;
         -webkit-text-size-adjust: 100%;
         text-size-adjust: 100%;
+        text-rendering: optimizeLegibility;
       }
 
       body {
@@ -128,21 +160,15 @@
         overflow-x: hidden;
       }
 
-      /* Prevent CLS from font swap */
-      @font-face {
-        font-family: {{ settings.body_font.family | json }};
-        font-weight: {{ settings.body_font.weight }};
-        font-style:  {{ settings.body_font.style }};
-        font-display: swap;
-        src: {{ settings.body_font | font_face | split: 'src:' | last | split: ';' | first }};
+      /* ── Off-screen sections: skip rendering until near viewport ── */
+      /* Applied by JS via IntersectionObserver; set initial state here */
+      [data-section-id]:not(:first-child) {
+        content-visibility: auto;
+        contain-intrinsic-size: 0 400px; /* estimated height prevents scroll-jump */
       }
-      @font-face {
-        font-family: {{ settings.heading_font.family | json }};
-        font-weight: {{ settings.heading_font.weight }};
-        font-style:  {{ settings.heading_font.style }};
-        font-display: swap;
-        src: {{ settings.heading_font | font_face | split: 'src:' | last | split: ';' | first }};
-      }
+      /* Sections near viewport get full rendering */
+      [data-section-id].is-visible,
+      [data-section-id]:first-child { content-visibility: visible; }
 
       /* ── Utility: Skip to content ───────────────────────────── */
       .skip-to-content {
@@ -159,8 +185,13 @@
       }
       .skip-to-content:focus { top: 1rem; }
 
-      /* ── Prevent layout shift while JS initialises ──────────── */
+      /* ── Prevent CLS from font swap ─────────────────────────── */
       .js body { visibility: visible; }
+
+      /* ── Prevent FOUC before stylesheets load ───────────────── */
+      @media print {
+        body { visibility: hidden; }
+      }
     </style>
 
     {%- comment -%} ── Non-critical CSS loaded async ──────────── {%- endcomment -%}
@@ -172,25 +203,52 @@
         media: 'print',
         onload: "this.media='all'"
     }}
+    {%- comment -%} Noscript fallback: when JS is disabled the onload trick
+      never fires, so we include base.css as a normal blocking sheet.
+      This is a small perf cost for no-JS users but correctness matters. {%- endcomment -%}
+    <noscript>{{ 'base.css' | asset_url | stylesheet_tag }}</noscript>
 
     {{ content_for_header }}
 
-    {%- comment -%} ── Shopify Predictive Search & Cart API ─────── {%- endcomment -%}
+    {%- comment -%} ── Sitewide structured data ─────────────────── {%- endcomment -%}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": {{ shop.name | json }},
+      "url": {{ shop.url | json }},
+      "potentialAction": {
+        "@type":        "SearchAction",
+        "target":       {{ shop.url | append: routes.search_url | append: '?q={search_term_string}' | json }},
+        "query-input":  "required name=search_term_string"
+      }
+    }
+    </script>
+
+    {%- comment -%} ── Shopify Cart API + Route constants ───────── {%- endcomment -%}
     <script>
       document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
       window.routes = {
-        root:             "{{ routes.root_url }}",
-        cartUrl:          "{{ routes.cart_url }}",
-        cartAddUrl:       "{{ routes.cart_add_url }}",
-        cartChangeUrl:    "{{ routes.cart_change_url }}",
-        cartUpdateUrl:    "{{ routes.cart_update_url }}",
-        predictiveSearch: "{{ routes.predictive_search_url }}"
+        root:             {{ routes.root_url             | json }},
+        cartUrl:          {{ routes.cart_url             | json }},
+        cartAddUrl:       {{ routes.cart_add_url         | json }},
+        cartChangeUrl:    {{ routes.cart_change_url      | json }},
+        cartUpdateUrl:    {{ routes.cart_update_url      | json }},
+        allProductsUrl:   {{ routes.all_products_collection_url | json }},
+        predictiveSearch: {{ routes.predictive_search_url | json }},
+        searchUrl:        {{ routes.search_url           | json }}
       };
       window.cartStrings = {
-        error:      {{ 'sections.cart.cart_error' | t | json }},
-        quantityError: {{ 'sections.cart.cart_quantity_error_html' | t: quantity: 99 | json }}
+        error:              {{ 'sections.cart.cart_error'             | t | json }},
+        quantityError:      {{ 'sections.cart.cart_quantity_error_html' | t: quantity: 99 | json }},
+        freeShippingThreshold: {{ 'sections.cart.free_shipping_threshold_html' | t: amount: '{{amount}}' | json }},
+        freeShippingAchieved:  {{ 'sections.cart.free_shipping_achieved' | t | json }}
       };
-      window.moneyFormat = {{ shop.money_format | json }};
+      window.moneyFormat       = {{ shop.money_format | json }};
+      window.shopCurrency      = {{ cart.currency.iso_code | json }};
+      window.themeVersion      = '1.0.0';
+      window.Shopify           = window.Shopify || {};
+      window.Shopify.theme     = { name: 'Lumière', version: '1.0.0' };
     </script>
   </head>
 

@@ -1,0 +1,497 @@
+{%- comment -%}
+  sections/page-template.liquid — Lumière Beauty Theme
+  Flexible page template for About, FAQ, Contact, Policy pages, etc.
+  Fully block-driven — no hardcoded content.
+
+  Blocks:
+    richtext  — WYSIWYG content area
+    image     — Inline image with optional caption
+    video     — Embedded YouTube/Vimeo or native video
+    button    — CTA with primary/glass/outline styles
+    divider   — Horizontal rule
+    spacer    — Configurable vertical gap
+{%- endcomment -%}
+
+{% style %}
+  #shopify-section-{{ section.id }} .page-template {
+    padding-top:    {{ section.settings.padding_top    | default: 64 }}px;
+    padding-bottom: {{ section.settings.padding_bottom | default: 80 }}px;
+  }
+  #shopify-section-{{ section.id }} .page-template__content {
+    max-width: {% case section.settings.max_width %}
+      {%- when 'narrow'  -%}680px
+      {%- when 'medium'  -%}860px
+      {%- when 'wide'    -%}1100px
+      {%- else -%}680px
+    {%- endcase %};
+  }
+{% endstyle %}
+
+<style>
+  /* Page template — critical styles */
+  .page-template { }
+  .page-template__header {
+    margin-bottom: clamp(2rem, 4vw, 3rem);
+    padding-bottom: var(--spacing-lg);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .page-template__title {
+    font-family:    var(--font-heading);
+    font-size:      clamp(2rem, 4vw, 3.25rem);
+    font-weight:    var(--font-heading-weight);
+    letter-spacing: -0.025em;
+    line-height:    1.1;
+    color:          var(--color-text);
+  }
+  .page-template__content {
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+  }
+
+  /* ── Richtext typography ──────────────────────────────────────────── */
+  .page-richtext {
+    font-size:   0.9375rem;
+    line-height: 1.8;
+    color:       var(--color-text-subtle);
+  }
+  .page-richtext h1,
+  .page-richtext h2,
+  .page-richtext h3,
+  .page-richtext h4 {
+    font-family:    var(--font-heading);
+    font-weight:    var(--font-heading-weight);
+    letter-spacing: -0.02em;
+    line-height:    1.2;
+    color:          var(--color-text);
+    margin-top:     1.75em;
+    margin-bottom:  0.5em;
+  }
+  .page-richtext h2 { font-size: clamp(1.3rem, 2.5vw, 1.85rem); }
+  .page-richtext h3 { font-size: clamp(1.1rem, 2vw,  1.4rem);  }
+  .page-richtext h4 { font-size: 1.05rem; }
+  .page-richtext p  { margin-bottom: 1em; }
+  .page-richtext p:last-child { margin-bottom: 0; }
+  .page-richtext a  {
+    color:           var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition:      color var(--transition-fast), text-decoration-color var(--transition-fast);
+  }
+  .page-richtext a:hover { color: var(--color-accent-hover); }
+  .page-richtext strong { font-weight: 700; color: var(--color-text); }
+  .page-richtext em    { font-style: italic; }
+  .page-richtext ul,
+  .page-richtext ol {
+    padding-left: 1.5em;
+    margin-bottom: 1em;
+  }
+  .page-richtext ul { list-style: disc; }
+  .page-richtext ol { list-style: decimal; }
+  .page-richtext li { margin-bottom: 0.4em; line-height: 1.7; }
+  .page-richtext blockquote {
+    margin:        1.5em 0;
+    padding:       1.25rem 1.5rem;
+    border-left:   3px solid var(--color-accent);
+    background:    rgba(201,169,110,0.05);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    font-family:   var(--font-heading);
+    font-style:    italic;
+    font-size:     1.1em;
+    color:         var(--color-text);
+  }
+  .page-richtext code {
+    font-family:   'Fira Code', 'Consolas', monospace;
+    font-size:     0.88em;
+    background:    rgba(255,255,255,0.07);
+    border:        1px solid rgba(255,255,255,0.10);
+    border-radius: 4px;
+    padding:       0.1em 0.4em;
+  }
+  .page-richtext pre {
+    background:    rgba(255,255,255,0.04);
+    border:        1px solid rgba(255,255,255,0.09);
+    border-radius: var(--radius-md);
+    padding:       1.25rem;
+    overflow-x:    auto;
+    margin-bottom: 1em;
+  }
+  .page-richtext pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 0.875rem;
+  }
+  .page-richtext table {
+    width:           100%;
+    border-collapse: collapse;
+    margin-bottom:   1em;
+    font-size:       0.875rem;
+  }
+  .page-richtext th,
+  .page-richtext td {
+    padding:     0.65rem 1rem;
+    border:      1px solid rgba(255,255,255,0.08);
+    text-align:  left;
+    line-height: 1.4;
+  }
+  .page-richtext th {
+    background: rgba(255,255,255,0.04);
+    font-weight: 700;
+    color:       var(--color-text);
+  }
+  .page-richtext tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  .page-richtext hr {
+    border:       none;
+    height:       1px;
+    background:   rgba(255,255,255,0.08);
+    margin:       2em 0;
+  }
+  .page-richtext img {
+    border-radius: var(--radius-md);
+    max-width:     100%;
+    height:        auto;
+  }
+
+  /* ── Page image block ──────────────────────────────────────────────── */
+  .page-image { }
+  .page-image__img {
+    border-radius: var(--radius-lg);
+    overflow:      hidden;
+    line-height:   0;
+  }
+  .page-image__img img {
+    width:   100%;
+    height:  auto;
+    display: block;
+  }
+  .page-image__caption {
+    margin-top:  0.65rem;
+    font-size:   0.78rem;
+    color:       var(--color-text-subtle);
+    text-align:  center;
+    font-style:  italic;
+  }
+  /* Image width variants */
+  .page-image--full  { }
+  .page-image--wide  { max-width: 100%; }
+  .page-image--medium{ max-width: 640px; margin-left: auto; margin-right: auto; }
+  .page-image--small { max-width: 360px; margin-left: auto; margin-right: auto; }
+
+  /* ── Page video block ──────────────────────────────────────────────── */
+  .page-video {
+    border-radius: var(--radius-lg);
+    overflow:      hidden;
+    position:      relative;
+  }
+  .page-video__embed {
+    aspect-ratio: 16/9;
+    width:        100%;
+  }
+  .page-video__embed iframe {
+    width:  100%;
+    height: 100%;
+    border: none;
+  }
+
+  /* ── Page button block ─────────────────────────────────────────────── */
+  .page-button {
+    display:         flex;
+    justify-content: var(--btn-align, flex-start);
+  }
+
+  /* ── Page divider ──────────────────────────────────────────────────── */
+  .page-divider {
+    height:     1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255,255,255,0.10) 25%,
+      rgba(201,169,110,0.30) 50%,
+      rgba(255,255,255,0.10) 75%,
+      transparent 100%
+    );
+  }
+</style>
+
+<article class="page-template">
+  <div class="container">
+
+    {%- if section.settings.show_title -%}
+      <header class="page-template__header animate-on-scroll">
+        <h1 class="page-template__title">{{ page.title }}</h1>
+      </header>
+    {%- endif -%}
+
+    <div class="page-template__content">
+
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+
+          {%- comment -%} ── Rich text ─────────────────────────────── {%- endcomment -%}
+          {%- when 'richtext' -%}
+            {%- if block.settings.content != blank -%}
+              <div class="page-richtext animate-on-scroll" {{ block.shopify_attributes }}>
+                {{ block.settings.content }}
+              </div>
+            {%- elsif page.content != blank -%}
+              {%- comment -%} Fallback: render the page's Shopify-managed content {%- endcomment -%}
+              <div class="page-richtext animate-on-scroll" {{ block.shopify_attributes }}>
+                {{ page.content }}
+              </div>
+            {%- endif -%}
+
+          {%- comment -%} ── Image ──────────────────────────────────── {%- endcomment -%}
+          {%- when 'image' -%}
+            {%- if block.settings.image != blank -%}
+              {%- assign img = block.settings.image -%}
+              <figure
+                class="page-image page-image--{{ block.settings.image_width | default: 'full' }} animate-on-scroll"
+                {{ block.shopify_attributes }}
+              >
+                <div class="page-image__img">
+                  <img
+                    src="{{ img | image_url: width: 1200 }}"
+                    srcset="
+                      {{ img | image_url: width: 480  }} 480w,
+                      {{ img | image_url: width: 800  }} 800w,
+                      {{ img | image_url: width: 1200 }} 1200w,
+                      {{ img | image_url: width: 1600 }} 1600w
+                    "
+                    sizes="(max-width: 900px) 100vw, {{ section.settings.max_width | default: 'narrow' | replace: 'narrow','680px' | replace: 'medium','860px' | replace: 'wide','1100px' }}"
+                    alt="{{ block.settings.alt | default: img.alt | escape }}"
+                    width="{{ img.width }}"
+                    height="{{ img.height }}"
+                    loading="lazy"
+                    decoding="async"
+                  >
+                </div>
+                {%- if block.settings.alt != blank -%}
+                  <figcaption class="page-image__caption">{{ block.settings.alt | escape }}</figcaption>
+                {%- endif -%}
+              </figure>
+            {%- endif -%}
+
+          {%- comment -%} ── Video ──────────────────────────────────── {%- endcomment -%}
+          {%- when 'video' -%}
+            {%- if block.settings.video_url != blank -%}
+              {%- liquid
+                assign video_url    = block.settings.video_url
+                assign video_type   = block.settings.video_url.type
+                assign video_id     = block.settings.video_url.id
+              -%}
+              <div class="page-video animate-on-scroll" {{ block.shopify_attributes }}>
+                <div class="page-video__embed">
+                  {%- if video_type == 'youtube' -%}
+                    <iframe
+                      src="https://www.youtube.com/embed/{{ video_id }}?{% if block.settings.autoplay %}autoplay=1&mute=1&{% endif %}rel=0&modestbranding=1"
+                      title="{{ page.title | escape }} — video"
+                      allow="autoplay; encrypted-media; picture-in-picture"
+                      allowfullscreen
+                      loading="lazy"
+                    ></iframe>
+                  {%- elsif video_type == 'vimeo' -%}
+                    <iframe
+                      src="https://player.vimeo.com/video/{{ video_id }}?{% if block.settings.autoplay %}autoplay=1&muted=1&{% endif %}byline=0&portrait=0"
+                      title="{{ page.title | escape }} — video"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowfullscreen
+                      loading="lazy"
+                    ></iframe>
+                  {%- endif -%}
+                </div>
+              </div>
+            {%- endif -%}
+
+          {%- comment -%} ── Button ─────────────────────────────────── {%- endcomment -%}
+          {%- when 'button' -%}
+            {%- if block.settings.label != blank -%}
+              <div
+                class="page-button"
+                style="--btn-align: {{ block.settings.alignment | default: 'flex-start' }};"
+                {{ block.shopify_attributes }}
+              >
+                <a
+                  href="{{ block.settings.url | default: '#' }}"
+                  class="btn btn--{{ block.settings.style | default: 'primary' }}{% if block.settings.large %} btn--lg{% endif %}"
+                  {% if block.settings.new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
+                >
+                  {{- block.settings.label | escape -}}
+                </a>
+              </div>
+            {%- endif -%}
+
+          {%- comment -%} ── Divider ────────────────────────────────── {%- endcomment -%}
+          {%- when 'divider' -%}
+            <div class="page-divider" aria-hidden="true" {{ block.shopify_attributes }}></div>
+
+          {%- comment -%} ── Spacer ─────────────────────────────────── {%- endcomment -%}
+          {%- when 'spacer' -%}
+            <div
+              style="height: {{ block.settings.height | default: 32 }}px;"
+              aria-hidden="true"
+              {{ block.shopify_attributes }}
+            ></div>
+
+        {%- endcase -%}
+      {%- endfor -%}
+
+      {%- comment -%} ── Fallback: if no blocks, show page content ──── {%- endcomment -%}
+      {%- if section.blocks.size == 0 and page.content != blank -%}
+        <div class="page-richtext">{{ page.content }}</div>
+      {%- endif -%}
+
+    </div>
+  </div>
+</article>
+
+{% schema %}
+{
+  "name": "Page content",
+  "tag": "section",
+  "class": "section-page-template",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_title",
+      "label": "Show page title",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "max_width",
+      "label": "Content max width",
+      "default": "narrow",
+      "options": [
+        { "value": "narrow", "label": "Narrow (680px) — ideal for reading" },
+        { "value": "medium", "label": "Medium (860px)" },
+        { "value": "wide",   "label": "Wide (1100px)" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Top padding",
+      "min": 0, "max": 160, "step": 8, "unit": "px", "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Bottom padding",
+      "min": 0, "max": 160, "step": 8, "unit": "px", "default": 80
+    }
+  ],
+  "blocks": [
+    {
+      "type": "richtext",
+      "name": "Rich text",
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Content",
+          "info": "Leave blank to use the page content from the Admin page editor."
+        }
+      ]
+    },
+    {
+      "type": "image",
+      "name": "Image",
+      "settings": [
+        { "type": "image_picker", "id": "image",       "label": "Image" },
+        { "type": "text",         "id": "alt",         "label": "Alt text / caption" },
+        {
+          "type": "select",
+          "id": "image_width",
+          "label": "Image width",
+          "default": "full",
+          "options": [
+            { "value": "full",   "label": "Full width" },
+            { "value": "wide",   "label": "Wide" },
+            { "value": "medium", "label": "Medium" },
+            { "value": "small",  "label": "Small" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "video",
+      "name": "Video",
+      "settings": [
+        {
+          "type": "video_url",
+          "id": "video_url",
+          "label": "YouTube or Vimeo URL",
+          "accept": ["youtube", "vimeo"]
+        },
+        {
+          "type": "checkbox",
+          "id": "autoplay",
+          "label": "Autoplay (muted)",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "button",
+      "name": "Button",
+      "settings": [
+        { "type": "text",    "id": "label",    "label": "Button text",  "default": "Learn More" },
+        { "type": "url",     "id": "url",      "label": "Link" },
+        {
+          "type": "select",
+          "id": "style",
+          "label": "Style",
+          "default": "primary",
+          "options": [
+            { "value": "primary", "label": "Primary (filled)" },
+            { "value": "glass",   "label": "Glass" },
+            { "value": "outline", "label": "Outline" }
+          ]
+        },
+        {
+          "type": "select",
+          "id": "alignment",
+          "label": "Alignment",
+          "default": "flex-start",
+          "options": [
+            { "value": "flex-start", "label": "Left" },
+            { "value": "center",     "label": "Center" },
+            { "value": "flex-end",   "label": "Right" }
+          ]
+        },
+        { "type": "checkbox", "id": "large",   "label": "Large size",      "default": false },
+        { "type": "checkbox", "id": "new_tab", "label": "Open in new tab",  "default": false }
+      ]
+    },
+    {
+      "type": "divider",
+      "name": "Divider",
+      "settings": []
+    },
+    {
+      "type": "spacer",
+      "name": "Spacer",
+      "settings": [
+        { "type": "range", "id": "height", "label": "Height", "min": 8, "max": 120, "step": 4, "unit": "px", "default": 32 }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Page — Standard",
+      "blocks": [
+        { "type": "richtext" }
+      ]
+    },
+    {
+      "name": "Page — With Image",
+      "blocks": [
+        { "type": "richtext" },
+        { "type": "image" }
+      ]
+    }
+  ]
+}
+{% endschema %}
